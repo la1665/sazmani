@@ -1,0 +1,47 @@
+# Ignore Python cache and compiled files
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Ignore virtual environments
+venv/
+.venv/
+env/
+
+# Ignore version control directories
+.git/
+.gitignore
+
+# Ignore IDE/editor configurations
+.vscode/
+.idea/
+
+# Ignore node modules (if applicable)
+node_modules/
+
+# Ignore build and output directories
+build/
+dist/
+*.egg-info/
+
+# Ignore Dockerfile and docker-compose files (if not needed inside the image)
+Dockerfile
+docker-compose.yml
+
+# Ignore large files or datasets (adjust as needed)
+data/
+media/
+
+# Ignore any other unnecessary files
+*.swp
+.DS_Store
+
+
+# Ignore all log files in the logs directory
+logs/*.log
+
+# Or ignore all log files recursively
+logs/**/*.log
+
+# Alternatively, ignore all log files in the project
+*.log
