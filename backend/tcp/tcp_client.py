@@ -205,7 +205,7 @@ class SimpleTCPClient(basic.LineReceiver):
         else:
             print(f"[INFO] Received acknowledgment for message ID: {reply_to}")
 
-    async def _broadcast_to_socketio(self, event_name, data, camera_id):
+    async def _broadcast_to_socketio(self, event_name, data, camera_id=None):
         """Efficiently broadcast a message to all subscribed clients for an event."""
         await emit_to_requested_sids(event_name, data, camera_id)
 
@@ -220,45 +220,35 @@ class SimpleTCPClient(basic.LineReceiver):
             async with async_session() as session:
                 traffic_operation = TrafficOperation(session)
 
-                # Retrieve the camera object to validate and find the associated gate
-                # camera_query = await session.execute(
-                #     select(DBCamera).where(DBCamera.id == camera_id)
-                # )
-                # db_camera = camera_query.scalar_one_or_none()
+                try:
+                    for car in message_body.get("cars", []):
+                        plate_number = car.get("plate", {}).get("plate", "Unknown")
+                        ocr_accuracy = car.get("ocr_accuracy", "Unknown")
+                        vision_speed = car.get("vision_speed", 0.0)
+                        plate_image_base64 = car.get("plate", {}).get("plate_image", "")
+                        # Create a TrafficCreate object for the car
+                        traffic_data = TrafficCreate(
+                            plate_number=plate_number,
+                            ocr_accuracy=ocr_accuracy,
+                            vision_speed=vision_speed,
+                            plate_image_path=plate_image_base64,
+                            timestamp=timestamp,
+                            camera_id=camera_id,
+                        )
 
-                # if not db_camera or not db_camera.gate_id:
-                #     print(f"[ERROR] Camera with ID {camera_id} not found or has no associated gate.")
-                #     return  # Handle missing camera or gate appropriately
+                        # Use the TrafficOperation to store the traffic data
+                        traffic_entry = await traffic_operation.create_traffic(traffic_data)
+                        print(f"[INFO] Stored traffic data: {traffic_entry.id} for plate {plate_number}")
 
-                # gate_id = db_camera.gate_id
-
-                # Process each car in the received message
-            try:
-                for car in message_body.get("cars", []):
-                    plate_number = car.get("plate", {}).get("plate", "Unknown")
-                    ocr_accuracy = car.get("ocr_accuracy", "Unknown")
-                    vision_speed = car.get("vision_speed", 0.0)
-                    # Create a TrafficCreate object for the car
-                    traffic_data = TrafficCreate(
-                        plate_number=plate_number,
-                        ocr_accuracy=ocr_accuracy,
-                        vision_speed=vision_speed,
-                        timestamp=timestamp,
-                        camera_id=camera_id
-                    )
-
-                    # Use the TrafficOperation to store the traffic data
-                    traffic_entry = await traffic_operation.create_traffic(traffic_data)
-                    print(f"[INFO] Stored traffic data: {traffic_entry.id} for plate {plate_number}")
-
-            except SQLAlchemyError as e:
-                print(f"[ERROR] Database error while storing traffic data: {e}")
-                await session.rollback()
-            finally:
-                await session.close()
+                except SQLAlchemyError as e:
+                    print(f"[ERROR] Database error while storing traffic data: {e}")
+                    await session.rollback()
+                finally:
+                    await session.close()
 
         except Exception as e:
             print(f"[ERROR] Unexpected error: {e}")
+
 
         socketio_message = {
             "messageType": "plates_data",
@@ -326,15 +316,24 @@ class SimpleTCPClient(basic.LineReceiver):
 
     async def _handle_resources(self, message):
         print(f"[INFO] Resources received: {message['messageBody']}")
-        cpu_usage = message["messageBody"].get("CPU_USAGE")
-        ram_usage = message["messageBody"].get("RAM_USAGE")
-        free_space_percentage = message["messageBody"].get("Free_Space_Percentage")
+        # cpu_usage = message["messageBody"].get("CPU_USAGE")
+        # ram_usage = message["messageBody"].get("RAM_USAGE")
+        # free_space_percentage = message["messageBody"].get("Free_Space_Percentage")
         # Process resource data here (e.g., log it or trigger some actions)
+        message["messageBody"]["lpr_id"] = self.factory.lpr_id
+        asyncio.ensure_future(self._broadcast_to_socketio("resources", message['messageBody']))
 
     async def _handle_camera_connection(self, message):
         print(f"[INFO] Camera connection status: {message['messageBody']}")
         is_connected = message["messageBody"].get("Connection")
         # Process camera connection status here (e.g., log or update UI)
+        try:
+            # Broadcast the heartbeat message to all subscribed clients
+            await self._broadcast_to_socketio(event_name="camera_connection", data=is_connected)
+
+            # Optional: Add additional logic for handling heartbeat data, if necessary
+        except Exception as e:
+            print(f"[ERROR] Failed to handle camera connection message: {e}")
 
 
     def connectionLost(self, reason):
@@ -342,7 +341,20 @@ class SimpleTCPClient(basic.LineReceiver):
         self.factory.clientConnectionLost(self.transport.connector, reason)
 
     async def _handle_heartbeat(self, message):
-        print(message)
+        """
+        Handles heartbeat messages and sends them to subscribed clients via the socket.
+        """
+        try:
+            # Log the received heartbeat message (optional)
+            print(f"[INFO] Heartbeat received: {message}")
+            message["lpr_id"] = self.factory.lpr_id
+
+            # Broadcast the heartbeat message to all subscribed clients
+            await self._broadcast_to_socketio(event_name="heartbeat", data=message)
+
+            # Optional: Add additional logic for handling heartbeat data, if necessary
+        except Exception as e:
+            print(f"[ERROR] Failed to handle heartbeat message: {e}")
 
 from twisted.internet import reactor, ssl
 

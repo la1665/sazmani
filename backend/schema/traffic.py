@@ -3,10 +3,7 @@ from datetime import datetime
 from typing import Optional
 
 # from models.user import UserType
-from schema.building import BuildingInDB
-from schema.gate import GateInDB
 from schema.pagination import Pagination
-from schema.user import UserInDB
 
 
 class TrafficBase(BaseModel):
@@ -15,12 +12,12 @@ class TrafficBase(BaseModel):
     vision_speed: float
     timestamp: datetime
     camera_id: int
+    plate_image_path: Optional[str]
     # gate_id: int
 
 
 class TrafficCreate(TrafficBase):
     pass
-
 
 class TrafficUpdate(BaseModel):
     pass
@@ -29,6 +26,7 @@ class TrafficUpdate(BaseModel):
 class TrafficInDB(TrafficBase):
     id: int
     gate_id: int
+    plate_image_url: Optional[str] = None
     # owner_username: Optional[str] = None
     # owner_first_name: Optional[str] = None
     # owner_last_name: Optional[str] = None

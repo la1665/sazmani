@@ -73,9 +73,6 @@ class LprOperation(CrudOperation):
             await self.db_session.commit()
             await self.db_session.refresh(db_lpr)
 
-            # Update connection in Twisted
-            await update_connection(db_lpr.id, db_lpr.ip, db_lpr.port, db_lpr.auth_token)
-
             return db_lpr
         except SQLAlchemyError as error:
             await self.db_session.rollback()
@@ -116,7 +113,7 @@ class LprOperation(CrudOperation):
 
         # Fetch the records
         query = await self.db_session.execute(
-            select(DBCamera).where(DBCamera.lpr_id == lpr_id).offset(offset).limit(page_size)
+            select(DBCamera).where(DBCamera.lpr_id == lpr_id).order_by(DBCamera.id).offset(offset).limit(page_size)
         )
         objects = query.unique().scalars().all()
 
@@ -140,7 +137,7 @@ class LprOperation(CrudOperation):
 
         # Fetch the records
         query = await self.db_session.execute(
-            select(DBLprSettingInstance).where(DBLprSettingInstance.lpr_id == lpr_id).offset(offset).limit(page_size)
+            select(DBLprSettingInstance).where(DBLprSettingInstance.lpr_id == lpr_id).order_by(DBLprSettingInstance.id).offset(offset).limit(page_size)
         )
         objects = query.unique().scalars().all()
 

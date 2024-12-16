@@ -13,6 +13,7 @@ class DBTraffic(Base):
     vision_speed = Column(Float, nullable=True)
     camera_id = Column(Integer, index=True)
     gate_id = Column(Integer, index=True)
+    plate_image_path = Column(String, nullable=True)
     # gate_id = Column(Integer, ForeignKey("gates.id"), nullable=False)
     # camera_id = Column(Integer, ForeignKey("cameras.id"), nullable=False)
 

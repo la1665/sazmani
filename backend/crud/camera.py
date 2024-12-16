@@ -5,7 +5,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
-from tcp.tcp_manager import add_connection
+from tcp.tcp_manager import add_connection, update_connection
 from crud.base import CrudOperation
 from crud.gate import GateOperation
 from crud.lpr import LprOperation
@@ -56,9 +56,6 @@ class CameraOperation(CrudOperation):
             await self.db_session.commit()
             await self.db_session.refresh(new_camera)
 
-            # Add connection to Twisted
-            await add_connection(self.db_session, camera_id=new_camera.id, lpr_id=None)
-
             return new_camera
         except SQLAlchemyError as error:
             await self.db_session.rollback()
@@ -87,6 +84,7 @@ class CameraOperation(CrudOperation):
             self.db_session.add(db_camera)
             await self.db_session.commit()
             await self.db_session.refresh(db_camera)
+
             return db_camera
         except SQLAlchemyError as error:
             await self.db_session.rollback()
@@ -109,7 +107,7 @@ class CameraOperation(CrudOperation):
 
         # Fetch the records
         query = await self.db_session.execute(
-            select(DBCameraSettingInstance).where(DBCameraSettingInstance.camera_id == camera_id).offset(offset).limit(page_size)
+            select(DBCameraSettingInstance).where(DBCameraSettingInstance.camera_id == camera_id).order_by(DBCameraSettingInstance.id).offset(offset).limit(page_size)
         )
         objects = query.unique().scalars().all()
 

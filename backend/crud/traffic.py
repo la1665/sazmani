@@ -1,5 +1,8 @@
+import base64
 import math
-from fastapi import HTTPException, UploadFile, status
+import os
+from pathlib import Path
+from fastapi import HTTPException, status
 from sqlalchemy import func
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.future import select
@@ -7,21 +10,26 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from datetime import datetime
 
 from crud.base import CrudOperation
-from crud.building import BuildingOperation
 from crud.gate import GateOperation
 from crud.camera import CameraOperation
-from crud.user import UserOperation
-from crud.vehicle import VehicleOperation
 from models.traffic import DBTraffic
-from schema.user import UserInDB
-from schema.building import BuildingInDB
-from schema.gate import GateInDB
-from schema.traffic import TrafficCreate, TrafficInDB
+from schema.traffic import TrafficCreate
+
+
+BASE_UPLOAD_DIR = Path("uploads/plate_images")
+BASE_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 
 class TrafficOperation(CrudOperation):
     def __init__(self, db_session: AsyncSession) -> None:
         super().__init__(db_session, DBTraffic)
+
+    async def get_one_plate_number(self, plate_number: str):
+        result = await self.db_session.execute(
+            select(self.db_table).where(self.db_table.plate_number==plate_number)
+        )
+        object = result.unique().scalar_one_or_none()
+        return object
 
     async def create_traffic(self, traffic: TrafficCreate):
         # db_vehicle = await VehicleOperation(self.db_session).get_one_vehcile_plate(traffic.plate_number)
@@ -30,11 +38,27 @@ class TrafficOperation(CrudOperation):
         db_gate = await GateOperation(self.db_session).get_one_object_id(db_camera.gate_id)
 
         try:
+            plate_image_path = None
+            if traffic.plate_image_path:
+                try:
+                    # Decode the base64 image and save it to the file system
+                    image_bytes = base64.b64decode(traffic.plate_image_path)
+                    image_name = f"{traffic.plate_number}_{traffic.timestamp.isoformat().replace(':', '-')}.jpg"
+                    image_path = BASE_UPLOAD_DIR / image_name
+                    with open(image_path, "wb") as img_file:
+                        img_file.write(image_bytes)
+                    plate_image_path = str(image_path)
+                except Exception as e:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"Failed to save plate image: {e}"
+                    )
             naive_timestamp = traffic.timestamp.replace(tzinfo=None)
             new_traffic = self.db_table(
                 plate_number = traffic.plate_number,
                 ocr_accuracy = traffic.ocr_accuracy,
                 vision_speed = traffic.vision_speed,
+                plate_image_path=plate_image_path,
                 timestamp = naive_timestamp,
                 camera_id = db_camera.id,
                 gate_id = db_gate.id,
@@ -42,6 +66,7 @@ class TrafficOperation(CrudOperation):
             self.db_session.add(new_traffic)
             await self.db_session.commit()
             await self.db_session.refresh(new_traffic)
+
             return new_traffic
         except SQLAlchemyError as error:
             await self.db_session.rollback()
@@ -71,7 +96,7 @@ class TrafficOperation(CrudOperation):
         """
         Retrieve all traffic data with optional filters for gate_id, camera_id, plate_number, and date range, with pagination.
         """
-        query = select(self.db_table)
+        query = select(self.db_table).order_by(self.db_table.id)
 
         # Apply filters
         if gate_id is not None:

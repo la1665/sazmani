@@ -39,7 +39,7 @@ class CrudOperation:
 
         # Fetch the records
         query = await self.db_session.execute(
-            select(self.db_table).offset(offset).limit(page_size)
+            select(self.db_table).order_by(self.db_table.id).offset(offset).limit(page_size)
         )
         objects = query.unique().scalars().all()
 
@@ -62,7 +62,7 @@ class CrudOperation:
             # async with self.db_session.begin():  # Begin a transaction
             self.db_session.add(db_object)
             await self.db_session.commit()
-
+            await self.db_session.refresh(db_object)
             # Return the appropriate message
             status_message = "activated" if db_object.is_active else "deactivated"
             return {"message": status_message}

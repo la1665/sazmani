@@ -169,7 +169,7 @@ default_lprs = [
     {
       "name": "ماژول پلاک خوان۱",
       "description": "پلاک خوان دوربین گیت۱ برای ورودی/خروجی",
-      "ip": "127.0.0.1",
+      "ip": "185.81.99.23",
       "port": 45,
       "latitude": "98.0.0",
       "longitude": "98.0.0",
@@ -218,30 +218,30 @@ default_cameras = [
       "gate_id": 1,
       "lpr_id": 1,
     },
-    {
-      "name": "دوربین دوم",
-      "latitude": "2.0.1",
-      "longitude": "2.0.1",
-      "description": "دوربین گیت ورود",
-      "gate_id": 1,
-      "lpr_id": 1,
-    },
-    {
-      "name": "دوربین سوم",
-      "latitude": "3.0.1",
-      "longitude": "3.0.1",
-      "description": "دوربین گیت خروج",
-      "gate_id": 1,
-      "lpr_id": 1,
-    },
-    {
-      "name": "دوربین گیت اصلی",
-      "latitude": "4.0.1",
-      "longitude": "4.0.1",
-      "description": "دوربین اصلی(ورود/خروج)",
-      "gate_id": 1,
-      "lpr_id": 1,
-    },
+    # {
+    #   "name": "دوربین دوم",
+    #   "latitude": "2.0.1",
+    #   "longitude": "2.0.1",
+    #   "description": "دوربین گیت ورود",
+    #   "gate_id": 1,
+    #   "lpr_id": 1,
+    # },
+    # {
+    #   "name": "دوربین سوم",
+    #   "latitude": "3.0.1",
+    #   "longitude": "3.0.1",
+    #   "description": "دوربین گیت خروج",
+    #   "gate_id": 1,
+    #   "lpr_id": 1,
+    # },
+    # {
+    #   "name": "دوربین گیت اصلی",
+    #   "latitude": "4.0.1",
+    #   "longitude": "4.0.1",
+    #   "description": "دوربین اصلی(ورود/خروج)",
+    #   "gate_id": 1,
+    #   "lpr_id": 1,
+    # },
 ]
 
 
@@ -365,7 +365,7 @@ async def initialize_defaults(db: AsyncSession):
         if db_camera:
             print("camera object already exists.")
             print("connecting to twisted ...")
-            await add_connection(db, camera_id=db_camera.id, lpr_id=None)
+            await add_connection(db, lpr_id=db_camera.lpr_id)
             return
         camera_obj = CameraCreate(
             name=camera["name"],
@@ -377,4 +377,5 @@ async def initialize_defaults(db: AsyncSession):
         )
         new_camera = await camera_op.create_camera(camera_obj)
         print(f"Created camera with ID: {new_camera.id}")
+        await add_connection(db, lpr_id=new_camera.lpr_id)
     print("default cameras created!!!")

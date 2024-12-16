@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, status, HTTPException, UploadFile, File
+from fastapi import APIRouter, Depends, status, HTTPException, UploadFile, File, Request
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from pathlib import Path
@@ -40,6 +40,7 @@ async def api_create_user(
 
 @user_router.get("/{user_id}", response_model=UserInDB, status_code=status.HTTP_200_OK, dependencies=[Depends(check_password_changed)])
 async def api_get_user(
+    request: Request,
     user_id: int,
     db: AsyncSession = Depends(get_db),
     current_user: UserInDB=Depends(get_admin_user)
@@ -51,14 +52,10 @@ async def api_get_user(
     user = await user_op.get_one_object_id(user_id)
 
     # Generate the profile image URL if the image exists
-    # if user.profile_image:
-    #     image_path = Path(user.profile_image)
-    #     if image_path.exists():
-    #         image_url = f"{BASE_UPLOAD_URL}/{image_path.name}"  # Generate the URL relative to the static files
-    #     else:
-    #         image_url = None  # Handle cases where the image path is invalid
-    # else:
-    #     image_url = None
+    if user.profile_image:
+        filename = Path(user.profile_image).name
+        user.profile_image_url = f"{request.base_url}uploads/profile_images/{filename}"
+
 
     # return UserInDB(
     #     **user.__dict__,
@@ -69,6 +66,7 @@ async def api_get_user(
 
 @user_router.get("/",response_model=UserPagination, status_code=status.HTTP_200_OK, dependencies=[Depends(check_password_changed)])
 async def api_get_all_users(
+    request: Request,
     page: int = 1,
     page_size: int = 10,
     db: AsyncSession = Depends(get_db),
@@ -79,6 +77,11 @@ async def api_get_all_users(
     """
     user_op = UserOperation(db)
     result = await user_op.get_all_objects(page, page_size)
+    for user in result["items"]:
+        if user.profile_image:
+            filename = Path(user.profile_image).name
+            user.profile_image_url = f"{request.base_url}uploads/profile_images/{filename}"
+
     return result
 
 

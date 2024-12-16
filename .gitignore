@@ -11,6 +11,7 @@ __pycache__/
 # Distribution / packaging
 pyrightconfig.*
 .Python
+uploads/
 
 # PyInstaller
 #  Usually these files are written by a python script from a template

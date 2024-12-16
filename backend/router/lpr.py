@@ -9,7 +9,7 @@ from schema.lpr import LprCreate, LprUpdate, LprInDB, LprPagination
 from schema.lpr_setting import LprSettingInstanceCreate, LprSettingInstanceUpdate, LprSettingInstanceInDB, LprSettingInstancePagination
 from crud.lpr import LprOperation
 from utils.middlewwares import check_password_changed
-from tcp.tcp_manager import add_connection
+from tcp.tcp_manager import add_connection, update_connection, remove_connection
 
 # Create an APIRouter for user-related routes
 lpr_router = APIRouter(
@@ -28,7 +28,7 @@ async def api_create_lpr(
 ):
     lpr_op = LprOperation(db)
     new_lpr = await lpr_op.create_lpr(lpr)
-    await add_connection(db, camera_id=None, lpr_id=new_lpr.id)
+    await add_connection(db, lpr_id=new_lpr.id)
     return new_lpr
 
 @lpr_router.get("/", response_model=LprPagination, status_code=status.HTTP_200_OK, dependencies=[Depends(check_password_changed)])
@@ -65,7 +65,9 @@ async def api_update_lpr(
     current_user:UserInDB=Depends(get_admin_or_staff_user)
 ):
     lpr_op = LprOperation(db)
-    return await lpr_op.update_lpr(lpr_id, lpr)
+    db_lpr = await lpr_op.update_lpr(lpr_id, lpr)
+    await update_connection(db, lpr_id=db_lpr.id)
+    return db_lpr
 
 @lpr_router.delete("/{lpr_id}", status_code=status.HTTP_200_OK, dependencies=[Depends(check_password_changed)])
 async def api_delete_lpr(
@@ -74,7 +76,9 @@ async def api_delete_lpr(
     current_user:UserInDB=Depends(get_admin_or_staff_user)
 ):
     lpr_op = LprOperation(db)
-    return await lpr_op.delete_lpr(lpr_id)
+    await remove_connection(lpr_id)
+    db_lpr = await lpr_op.delete_lpr(lpr_id)
+    return db_lpr
 
 @lpr_router.patch("/{lpr_id}", status_code=status.HTTP_200_OK, dependencies=[Depends(check_password_changed)])
 async def api_change_activation(
@@ -83,8 +87,13 @@ async def api_change_activation(
     current_user:UserInDB=Depends(get_admin_or_staff_user)
 ):
     lpr_op = LprOperation(db)
-    return await lpr_op.change_activation_status(lpr_id)
-
+    status = await lpr_op.change_activation_status(lpr_id)
+    if status["message"] == "activated":
+        await add_connection(db, lpr_id)
+        return status
+    else:
+        await remove_connection(lpr_id)
+        return status
 
 @lpr_router.get("/{lpr_id}/settings", response_model=LprSettingInstancePagination, status_code=status.HTTP_200_OK, dependencies=[Depends(check_password_changed)])
 async def api_get_lpr_all_settings(lpr_id: int, page: int = 1, page_size: int = 10, db: AsyncSession = Depends(get_db), current_user: UserInDB = Depends(get_current_active_user)):

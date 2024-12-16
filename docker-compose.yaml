@@ -30,11 +30,12 @@ services:
       - host.docker.internal:host-gateway
     depends_on:
       - db
+      - redis
 
   db:
-    image: postgres:latest
+    image: postgres:15.4
     container_name: sazman_db
-    restart: on-failure
+    restart: always
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -47,8 +48,15 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./init-scripts:/docker-entrypoint-initdb.d
 
+  redis:
+    image: redis:6.2.13
+    container_name: sazman_redis
+    restart: on-failure
+    ports:
+      - "6379:6379"
+
   frontend:
-    image: nginx:latest
+    image: nginx:1.22
     container_name: sazman_frontend
     restart: on-failure
     volumes:
@@ -61,9 +69,19 @@ services:
     depends_on:
       - backend
 
+  celery_worker:
+    build:
+      context: ./backend
+    container_name: sazman_celery_worker
+    command: celery -A task_manager.celery_app worker --loglevel=info
+    depends_on:
+      - redis
+      - backend
+
 # networks:
 #   custom_network: # Define a custom bridge network
 #     driver: bridge
 
 volumes:
   postgres_data:
+    driver: local
