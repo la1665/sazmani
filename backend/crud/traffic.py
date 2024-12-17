@@ -82,7 +82,6 @@ class TrafficOperation(CrudOperation):
         #     owner_last_name=db_user.last_name if db_user else None,
         # )
 
-
     async def get_all_traffics(
         self,
         page: int = 1,
@@ -96,26 +95,27 @@ class TrafficOperation(CrudOperation):
         """
         Retrieve all traffic data with optional filters for gate_id, camera_id, plate_number, and date range, with pagination.
         """
-        query = select(self.db_table).order_by(self.db_table.id)
-
-        # Apply filters
-        if gate_id is not None:
-            query = query.where(self.db_table.gate_id == gate_id)
-        if camera_id is not None:
-            query = query.where(self.db_table.camera_id == camera_id)
-        if plate_number is not None:
-            query = query.where(self.db_table.plate_number.like(f"%{plate_number}%"))
-        if start_date is not None:
-            query = query.where(self.db_table.timestamp >= start_date)
-        if end_date is not None:
-            query = query.where(self.db_table.timestamp <= end_date)
-
         try:
-            # Get total records count with filters
+            # Base query
+            query = select(self.db_table).order_by(self.db_table.id)
+
+            # Apply filters
+            if gate_id is not None:
+                query = query.where(self.db_table.gate_id == gate_id)
+            if camera_id is not None:
+                query = query.where(self.db_table.camera_id == camera_id)
+            if plate_number is not None:
+                query = query.where(self.db_table.plate_number.ilike(f"%{plate_number}%"))
+            if start_date is not None:
+                query = query.where(self.db_table.timestamp >= start_date)
+            if end_date is not None:
+                query = query.where(self.db_table.timestamp <= end_date)
+
+            # Total records query
             total_query = await self.db_session.execute(select(func.count()).select_from(query.subquery()))
             total_records = total_query.scalar_one()
 
-            # Handle edge case: No records
+            # Handle no results
             if total_records == 0:
                 return {
                     "items": [],
@@ -125,15 +125,19 @@ class TrafficOperation(CrudOperation):
                     "page_size": page_size,
                 }
 
-            # Calculate total pages and offset
+            # Calculate pagination
             total_pages = math.ceil(total_records / page_size) if page_size else 1
-            offset = (page - 1) * page_size
+            offset = (page - 1) * page_size if page_size else None
 
-            # Fetch paginated records
-            paginated_query = query.offset(offset).limit(page_size)
-            result_query = await self.db_session.execute(paginated_query)
+            # Paginated query
+            if page_size:
+                query = query.offset(offset).limit(page_size)
+
+            # Fetch results
+            result_query = await self.db_session.execute(query)
             objects = result_query.scalars().all()
 
+            # Return response
             return {
                 "items": objects,
                 "total_records": total_records,
@@ -141,6 +145,7 @@ class TrafficOperation(CrudOperation):
                 "current_page": page,
                 "page_size": page_size,
             }
+
         except Exception as e:
             print(f"[ERROR] Failed to fetch traffic data: {e}")
             raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, "Failed to fetch traffic data.")

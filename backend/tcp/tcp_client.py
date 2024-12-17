@@ -1,3 +1,7 @@
+import base64
+import cv2
+import datetime
+import numpy as np
 import os
 import json
 import uuid
@@ -8,13 +12,21 @@ from pathlib import Path
 from twisted.internet import protocol
 from twisted.protocols import basic
 from sqlalchemy.exc import SQLAlchemyError
-
+from sqlalchemy.future import select
 
 from settings import settings
 from database.engine import async_session
 from socket_management import emit_to_requested_sids
 from crud.traffic import TrafficOperation
 from schema.traffic import TrafficCreate
+from models.record import DBRecord
+
+
+
+BASE_UPLOAD_DIR = Path("uploads")
+RECORDINGS_DIR = BASE_UPLOAD_DIR / "recordings"
+RECORDINGS_DIR.mkdir(parents=True, exist_ok=True)  # Ensure the directory exists
+
 
 
 async def fetch_lpr_settings(lpr_id: int):
@@ -80,6 +92,7 @@ class SimpleTCPClient(basic.LineReceiver):
 
         self.buffer = b""
         self.expected_length = None
+        self.video_writer = None
 
     def connectionMade(self):
         """Called when a connection to the server is made."""
@@ -168,6 +181,7 @@ class SimpleTCPClient(basic.LineReceiver):
                 "live": self._handle_live_data,
                 "heartbeat": self._handle_heartbeat,
                 "resources": self._handle_resources,
+                "recording": self._handle_recording,
                 "camera_connection": self._handle_camera_connection
             }.get(message_type, self._handle_unknown_message)
             await handler(parsed_message)
@@ -204,6 +218,72 @@ class SimpleTCPClient(basic.LineReceiver):
 
         else:
             print(f"[INFO] Received acknowledgment for message ID: {reply_to}")
+
+    async def _handle_recording(self, message):
+        message_body = message["messageBody"]
+        frame_base64 = message_body.get("frame")
+        camera_id = message_body.get("camera_id")
+        end_recording = message_body.get("end_recording")
+
+        if end_recording:
+            if self.video_writer:
+                self.video_writer.release()
+
+                # Save the recording information to the database
+                async with async_session() as session:
+                    record = DBRecord(
+                        title=os.path.basename(self.file_path),
+                        camera_id=camera_id,
+                        timestamp=datetime.datetime.now(),
+                        video_url=f"/uploads/recordings/{os.path.basename(self.file_path)}"
+                    )
+                    session.add(record)
+                    await session.commit()
+
+                print(f"Recording saved: {self.file_path}")
+                self.video_writer = None
+            else:
+                print("No active recording to end.")
+            return
+
+        if not frame_base64 or not camera_id:
+            print("Invalid message body")
+            return
+
+        # Decode the base64 frame
+        try:
+            frame_data = base64.b64decode(frame_base64)
+            frame_array = np.frombuffer(frame_data, dtype=np.uint8)
+            frame = cv2.imdecode(frame_array, cv2.IMREAD_COLOR)
+        except Exception as e:
+            print(f"Failed to decode frame: {e}")
+            return
+
+        # Initialize video writer if not already done
+        if self.video_writer is None:
+            # Generate filename based on camera name and timestamp
+            timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"{camera_id}_{timestamp}.mp4"
+
+            # Ensure directory exists
+            self.file_path = str(RECORDINGS_DIR / filename)
+
+            frame_height, frame_width, _ = frame.shape
+            fps = 30  # Adjust FPS as needed
+
+            fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+            self.video_writer = cv2.VideoWriter(self.file_path, fourcc, fps, (frame_width, frame_height))
+
+            if not self.video_writer.isOpened():
+                print("Failed to open video writer")
+                self.video_writer = None
+                return
+
+        # Write the frame to the video file
+        try:
+            self.video_writer.write(frame)
+        except Exception as e:
+            print(f"Error writing frame to video: {e}")
 
     async def _broadcast_to_socketio(self, event_name, data, camera_id=None):
         """Efficiently broadcast a message to all subscribed clients for an event."""

@@ -18,6 +18,7 @@ from router.camera import camera_router
 from router.lpr import lpr_router
 from router.vehicle import vehicle_router
 from router.traffic import traffic_router
+from router.record import record_router
 from task_manager.celery_app import celery, add_numbers
 
 # start_reactor()
@@ -43,9 +44,12 @@ print(f"[DEBUG] Reactor is running in thread: {threading.current_thread().name}"
 BASE_UPLOAD_DIR = Path("uploads")
 PROFILE_IMAGE_DIR = BASE_UPLOAD_DIR / "profile_images"
 PLATE_IMAGE_DIR = BASE_UPLOAD_DIR / "plate_images"
+RECORDINGS_DIR = BASE_UPLOAD_DIR / "recordings"
+RECORDINGS_DIR.mkdir(parents=True, exist_ok=True)
 # Serve static files for profile and plate images
 app.mount("/uploads/profile_images", StaticFiles(directory=str(PROFILE_IMAGE_DIR)), name="profile_images")
 app.mount("/uploads/plate_images", StaticFiles(directory=str(PLATE_IMAGE_DIR)), name="plate_images")
+app.mount("/uploads/recordings", StaticFiles(directory=str(RECORDINGS_DIR)), name="recordings")
 
 
 
@@ -57,6 +61,7 @@ include_router(app, camera_router)
 include_router(app, lpr_router)
 include_router(app, vehicle_router)
 include_router(app, traffic_router)
+include_router(app, record_router)
 
 @app.get("/")
 async def root():
