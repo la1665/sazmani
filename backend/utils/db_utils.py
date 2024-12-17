@@ -28,30 +28,30 @@ default_users = [
         "user_type":UserType.STAFF,
         "password":"2"
     },
-    {
-        "username":"3",
-        "email":"user3@example.com",
-        "user_type":UserType.STAFF,
-        "password":"3"
-    },
-    {
-        "username":"4",
-        "email":"user4@example.com",
-        "user_type":UserType.VIEWER,
-        "password":"4"
-    },
-    {
-        "username":"5",
-        "email":"user5@example.com",
-        "user_type":UserType.USER,
-        "password":"5"
-    },
-    {
-        "username":"6",
-        "email":"user6@example.com",
-        "user_type":UserType.USER,
-        "password":"6"
-    },
+    # {
+    #     "username":"3",
+    #     "email":"user3@example.com",
+    #     "user_type":UserType.STAFF,
+    #     "password":"3"
+    # },
+    # {
+    #     "username":"4",
+    #     "email":"user4@example.com",
+    #     "user_type":UserType.VIEWER,
+    #     "password":"4"
+    # },
+    # {
+    #     "username":"5",
+    #     "email":"user5@example.com",
+    #     "user_type":UserType.USER,
+    #     "password":"5"
+    # },
+    # {
+    #     "username":"6",
+    #     "email":"user6@example.com",
+    #     "user_type":UserType.USER,
+    #     "password":"6"
+    # },
 ]
 
 

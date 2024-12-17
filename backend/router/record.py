@@ -1,8 +1,10 @@
+from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Request
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
 from database.engine import async_session
+from pathlib import Path
 
 from shared_resources import connections
 from models.camera import DBCamera
@@ -10,16 +12,59 @@ from database.engine import get_db
 from models.record import DBRecord
 from crud.record import RecordOperation
 
+
+# Directory for recordings
+BASE_UPLOAD_DIR = Path("uploads")
+RECORDINGS_DIR = BASE_UPLOAD_DIR / "recordings"
+
 record_router = APIRouter()
 
 @record_router.get("/records/")
-async def get_records(camera_id: int = None, db: AsyncSession = Depends(get_db)):
+async def get_records(request: Request, camera_id: int = None, db: AsyncSession = Depends(get_db)):
     """
     Get recorded video information.
     """
     record_op = RecordOperation(db)
     records = await record_op.get_records(camera_id=camera_id)
-    return [{"id": record.id, "title": record.title, "camera_id": record.camera_id, "timestamp": record.timestamp, "video_url": record.video_url} for record in records]
+    return [
+        {
+            "id": record.id,
+            "title": record.title,
+            "camera_id": record.camera_id,
+            "timestamp": record.timestamp,
+            "video_url": f"{request.base_url}records/download/{record.id}",
+            # "video_url": f"{request.base_url}{record.video_url}"
+        }
+        for record in records
+    ]
+
+
+# Endpoint to serve video files for download
+@record_router.get("/records/download/{record_id}")
+async def download_record(record_id: int, db: AsyncSession = Depends(get_db)):
+    """
+    Download a recorded video by its ID.
+    """
+    async with db as session:
+        query = await session.execute(select(DBRecord).where(DBRecord.id == record_id))
+        record = query.scalar_one_or_none()
+
+        if not record:
+            raise HTTPException(status_code=404, detail="Record not found")
+
+        # Construct the file path
+        video_path = Path(RECORDINGS_DIR) / Path(record.video_url).name
+
+        if not video_path.exists():
+            raise HTTPException(status_code=404, detail="Video file not found")
+
+        # Serve the file with Content-Disposition: attachment
+        return FileResponse(
+            path=video_path,
+            filename=record.title,
+            media_type="video/mp4",  # Ensure correct media type
+            headers={"Content-Disposition": f"attachment; filename={record.title}"}
+        )
 
 
 @record_router.post("/start_recording", status_code=200)
