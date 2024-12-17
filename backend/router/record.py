@@ -47,7 +47,7 @@ async def start_recording(camera_id: int, duration: int = 60):
                 # Send the recording command to the server
                 command_data = {
                     "commandType": "recording",
-                    "cameraId": camera_id,
+                    "cameraId": str(camera_id),
                     "duration": duration,
                 }
                 factory.active_protocol.send_command(command_data)

@@ -240,7 +240,7 @@ class SimpleTCPClient(basic.LineReceiver):
                     session.add(record)
                     await session.commit()
 
-                print(f"Recording saved: {self.file_path}")
+                print(f"---------->> Recording saved: {self.file_path}")
                 self.video_writer = None
             else:
                 print("No active recording to end.")
@@ -296,38 +296,38 @@ class SimpleTCPClient(basic.LineReceiver):
         timestamp = message_body.get("timestamp")
 
 
-        try:
-            async with async_session() as session:
-                traffic_operation = TrafficOperation(session)
+        # try:
+        #     async with async_session() as session:
+        #         traffic_operation = TrafficOperation(session)
 
-                try:
-                    for car in message_body.get("cars", []):
-                        plate_number = car.get("plate", {}).get("plate", "Unknown")
-                        ocr_accuracy = car.get("ocr_accuracy", "Unknown")
-                        vision_speed = car.get("vision_speed", 0.0)
-                        plate_image_base64 = car.get("plate", {}).get("plate_image", "")
-                        # Create a TrafficCreate object for the car
-                        traffic_data = TrafficCreate(
-                            plate_number=plate_number,
-                            ocr_accuracy=ocr_accuracy,
-                            vision_speed=vision_speed,
-                            plate_image_path=plate_image_base64,
-                            timestamp=timestamp,
-                            camera_id=camera_id,
-                        )
+        #         try:
+        #             for car in message_body.get("cars", []):
+        #                 plate_number = car.get("plate", {}).get("plate", "Unknown")
+        #                 ocr_accuracy = car.get("ocr_accuracy", "Unknown")
+        #                 vision_speed = car.get("vision_speed", 0.0)
+        #                 plate_image_base64 = car.get("plate", {}).get("plate_image", "")
+        #                 # Create a TrafficCreate object for the car
+        #                 traffic_data = TrafficCreate(
+        #                     plate_number=plate_number,
+        #                     ocr_accuracy=ocr_accuracy,
+        #                     vision_speed=vision_speed,
+        #                     plate_image_path=plate_image_base64,
+        #                     timestamp=timestamp,
+        #                     camera_id=camera_id,
+        #                 )
 
-                        # Use the TrafficOperation to store the traffic data
-                        traffic_entry = await traffic_operation.create_traffic(traffic_data)
-                        print(f"[INFO] Stored traffic data: {traffic_entry.id} for plate {plate_number}")
+        #                 # Use the TrafficOperation to store the traffic data
+        #                 traffic_entry = await traffic_operation.create_traffic(traffic_data)
+        #                 print(f"[INFO] Stored traffic data: {traffic_entry.id} for plate {plate_number}")
 
-                except SQLAlchemyError as e:
-                    print(f"[ERROR] Database error while storing traffic data: {e}")
-                    await session.rollback()
-                finally:
-                    await session.close()
+        #         except SQLAlchemyError as e:
+        #             print(f"[ERROR] Database error while storing traffic data: {e}")
+        #             await session.rollback()
+        #         finally:
+        #             await session.close()
 
-        except Exception as e:
-            print(f"[ERROR] Unexpected error: {e}")
+        # except Exception as e:
+        #     print(f"[ERROR] Unexpected error: {e}")
 
 
         socketio_message = {

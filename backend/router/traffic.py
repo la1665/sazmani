@@ -93,11 +93,16 @@ async def get_traffic_data(
             ws.title = "Traffic Data"
 
             # Write headers
-            headers = ["ID", "Plate Number", "OCR Accuracy", "Vision Speed", "Timestamp", "Camera ID", "Gate ID"]
+            headers = ["ID", "Plate Number", "OCR Accuracy", "Vision Speed", "Timestamp", "Camera ID", "Gate ID", "Plate Image"]
             ws.append(headers)
 
             # Write data rows
             for item in result["items"]:
+                item.plate_image_url = None
+                if item.plate_image_path:
+                    filename = Path(item.plate_image_path).name
+                    item.plate_image_url = f"{request.base_url}uploads/plate_images/{filename}"
+
                 ws.append([
                     item.id,
                     item.plate_number,
@@ -106,6 +111,7 @@ async def get_traffic_data(
                     item.timestamp.isoformat(),
                     item.camera_id,
                     item.gate_id,
+                    item.plate_image_url,
                 ])
 
             wb.save(excel_path)
