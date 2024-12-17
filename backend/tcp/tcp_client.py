@@ -233,7 +233,7 @@ class SimpleTCPClient(basic.LineReceiver):
                 async with async_session() as session:
                     record = DBRecord(
                         title=os.path.basename(self.file_path),
-                        camera_id=camera_id,
+                        camera_id=int(camera_id),
                         timestamp=datetime.datetime.now(),
                         video_url=f"/uploads/recordings/{os.path.basename(self.file_path)}"
                     )
