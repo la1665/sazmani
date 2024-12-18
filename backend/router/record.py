@@ -26,13 +26,20 @@ async def get_records(request: Request, camera_id: int = None, db: AsyncSession 
     """
     record_op = RecordOperation(db)
     records = await record_op.get_records(camera_id=camera_id)
+    if request.base_url == "127.0.0.1:8000":
+        nginx_base_url = f"{request.base_url}".replace("127.0.0.1:8000", "127.0.0.1")  # Adjust for production
+    elif request.base_url == "localhost:8000":
+        nginx_base_url = f"{request.base_url}".replace("localhost:8000", "localhost")  # Adjust for production
+    else:
+        nginx_base_url = f"{request.base_url}".replace("localhost:8000", "localhost")  # Adjust for production
+
     return [
         {
             "id": record.id,
             "title": record.title,
             "camera_id": record.camera_id,
             "timestamp": record.timestamp,
-            "video_url": f"{request.base_url}records/download/{record.id}",
+            "video_url": f"http://127.0.0.1/uploads/recordings/{record.title}",
             # "video_url": f"{request.base_url}{record.video_url}"
         }
         for record in records

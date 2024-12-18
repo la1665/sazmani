@@ -101,7 +101,7 @@ async def get_traffic_data(
                 item.plate_image_url = None
                 if item.plate_image_path:
                     filename = Path(item.plate_image_path).name
-                    item.plate_image_url = f"{request.base_url}uploads/plate_images/{filename}"
+                    item.plate_image_url = f"http://127.0.0.1:8000/uploads/plate_images/{filename}"
 
                 ws.append([
                     item.id,
@@ -141,7 +141,7 @@ async def get_traffic_data(
         )
 
     # Add export URL to the response
-    export_url = str(request.base_url) + f"?page={page}&page_size={page_size}&download=true"
+    export_url = f"http://127.0.0.1:8000/v1/traffic?page={page}&page_size={page_size}&download=true"
     if gate_id:
         export_url += f"&gate_id={gate_id}"
     if camera_id:
@@ -158,7 +158,7 @@ async def get_traffic_data(
         traffic.plate_image_url = None
         if traffic.plate_image_path:
             filename = Path(traffic.plate_image_path).name
-            traffic.plate_image_url = f"{request.base_url}uploads/plate_images/{filename}"
+            traffic.plate_image_url = f"http://127.0.0.1:8000/uploads/plate_images/{filename}"
 
     return {
         **result,
