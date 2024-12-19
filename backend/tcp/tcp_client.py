@@ -505,25 +505,6 @@ class ReconnectingTCPClientFactory(protocol.ReconnectingClientFactory):
                 context.load_verify_locations(str(ca_cert_path))
 
 
-                # client_key_path = os.path.abspath(settings.CLIENT_KEY_PATH)
-                # client_cert_path = os.path.abspath(settings.CLIENT_CERT_PATH)
-                # ca_cert_path = os.path.abspath(settings.CA_CERT_PATH)
-
-                # Verify the paths
-                # print(f"Using client key: {client_key_path}")
-                # print(f"Using client cert: {client_cert_path}")
-                # print(f"Using CA cert: {ca_cert_path}")
-                # Use the certificates in the context
-                # context.use_certificate_file(client_cert_path)
-                # context.use_privatekey_file(client_key_path)
-                # context.load_verify_locations(ca_cert_path)
-                # context.use_certificate_file("client.crt")
-                # context.use_privatekey_file("client.key")
-                # context.load_verify_locations("ca.crt")
-
-                # context.use_certificate_file(settings.CLIENT_CERT_PATH)
-                # context.use_privatekey_file(settings.CLIENT_KEY_PATH)
-                # context.load_verify_locations(settings.CA_CERT_PATH)
                 context.set_verify(ssl.SSL.VERIFY_PEER, lambda conn, cert, errno, depth, ok: ok)
                 return context
 
@@ -533,7 +514,7 @@ class ReconnectingTCPClientFactory(protocol.ReconnectingClientFactory):
             print(f"[ERROR] Reconnection failed: {e}")
         finally:
             # Schedule the next reconnect attempt after 60 seconds
-            reactor.callLater(60, self._reset_connection_state_and_retry)
+            reactor.callLater(5, self._reset_connection_state_and_retry)
 
     def _reset_connection_state_and_retry(self):
         if self.active_protocol is not None:

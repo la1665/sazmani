@@ -68,7 +68,9 @@ async def get_traffic_data(
     Retrieve traffic data with pagination and include a downloadable ZIP file link.
     """
     traffic_op = TrafficOperation(db)
-    result = await traffic_op.get_all_traffics(
+
+    # Get paginated data for display
+    paginated_result = await traffic_op.get_all_traffics(
         page=page,
         page_size=page_size,
         gate_id=gate_id,
@@ -78,8 +80,20 @@ async def get_traffic_data(
         end_date=end_date
     )
 
-    if not result["items"]:
+    if not paginated_result["items"]:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No traffic data found for the given filters.")
+
+    # Get all matching data (without pagination) for the Excel and ZIP file
+    all_data_result = await traffic_op.get_all_traffics(
+        page=None,  # Pass None or ignore pagination for fetching all data
+        page_size=None,
+        gate_id=gate_id,
+        camera_id=camera_id,
+        plate_number=plate_number,
+        start_date=start_date,
+        end_date=end_date
+    )
+    all_items = all_data_result["items"]
 
     # Temporary directory for file creation
     with TemporaryDirectory() as temp_dir:
@@ -96,7 +110,7 @@ async def get_traffic_data(
         ws.append(headers)
 
         # Write data rows
-        for item in result["items"]:
+        for item in all_items:
             item.plate_image_url = None
             if item.plate_image_path:
                 filename = Path(item.plate_image_path).name
@@ -118,7 +132,7 @@ async def get_traffic_data(
         # Copy plate images to folder
         plate_images_dir = temp_dir_path / "plate_images"
         plate_images_dir.mkdir(parents=True, exist_ok=True)
-        for item in result["items"]:
+        for item in all_items:
             if item.plate_image_path:
                 source_image_path = Path(item.plate_image_path)
                 if source_image_path.exists():
@@ -139,12 +153,12 @@ async def get_traffic_data(
     zip_file_url = f"{request.base_url}{permanent_zip_path}"
 
     # Modify plate image URLs
-    for traffic in result["items"]:
+    for traffic in paginated_result["items"]:
         traffic.plate_image_url = None
         if traffic.plate_image_path:
             filename = Path(traffic.plate_image_path).name
             traffic.plate_image_url = f"{request.base_url}uploads/plate_images/{filename}"
 
-    result["zip_file_url"] = zip_file_url
+    paginated_result["zip_file_url"] = zip_file_url
 
-    return result
+    return paginated_result
