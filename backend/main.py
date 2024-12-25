@@ -1,5 +1,4 @@
 from tcp import reactor_setup
-import threading
 import uvicorn
 import socketio
 from fastapi import FastAPI
@@ -21,8 +20,6 @@ from router.traffic import traffic_router
 from router.record import record_router
 from task_manager.celery_app import celery, add_numbers
 
-# start_reactor()
-# reactor_setup_func()
 
 app = FastAPI(
     title="Sazman",
@@ -37,8 +34,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-print(f"[DEBUG] Reactor is running in thread: {threading.current_thread().name}")
 
 # Directories for images
 BASE_UPLOAD_DIR = Path("uploads")

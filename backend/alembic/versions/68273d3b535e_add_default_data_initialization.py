@@ -12,13 +12,8 @@ import sqlalchemy as sa
 from sqlalchemy.orm import Session
 from database.engine import Base
 from utils.db_utils import (
-    default_users,
     default_buildings,
     default_gates,
-    default_camera_settings,
-    default_lpr_settings,
-    default_lprs,
-    default_cameras,
 )
 
 # revision identifiers, used by Alembic.

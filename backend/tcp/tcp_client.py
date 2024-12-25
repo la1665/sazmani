@@ -12,9 +12,6 @@ from pathlib import Path
 from collections import deque
 from twisted.internet import protocol
 from twisted.protocols import basic
-from twisted.internet.defer import ensureDeferred, inlineCallbacks
-from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from concurrent.futures import ThreadPoolExecutor
 
@@ -82,13 +79,15 @@ class SimpleTCPClient(basic.LineReceiver):
         self.authenticated = False  # Track authentication status locally
         self.message_queue = asyncio.Queue()
         self.lock = asyncio.Lock()
-
+        self.batch_queue = asyncio.Queue()
+        self.batch_size = 10
+        self.batch_processing_interval = 5
         self.buffer = b""
         self.expected_length = None
         self.video_writer = None
         self.executor = ThreadPoolExecutor(max_workers=2)
         self.frame_buffer = deque(maxlen=30)
-        self.batch_size = 10
+        asyncio.create_task(self.process_batch_queue())
 
     def connectionMade(self):
         """Called when a connection to the server is made."""
@@ -205,9 +204,7 @@ class SimpleTCPClient(basic.LineReceiver):
             print("[INFO] Authentication successful.")
             self.authenticated = True
             self.factory.authenticated = True
-            # reactor.callInThread(lambda: ensureDeferred(self._fetch_and_send_lpr_settings()))
-            # await self._fetch_and_send_lpr_settings()
-            asyncio.create_task(self._fetch_and_send_lpr_settings())            # asyncio.ensure_future(self._fetch_and_send_lpr_settings())
+            asyncio.create_task(self._fetch_and_send_lpr_settings())
         else:
             print(f"[INFO] Acknowledgment for unknown message ID: {reply_to}")
 
@@ -279,6 +276,7 @@ class SimpleTCPClient(basic.LineReceiver):
                     return
             except Exception as error:
                 print(f"[ERROR] Failed to initialize video writer: {error}")
+
         self.frame_buffer.append(frame)
         # Write the batch if the buffer is full
         if len(self.frame_buffer) >= self.batch_size:
@@ -298,46 +296,66 @@ class SimpleTCPClient(basic.LineReceiver):
         """Efficiently broadcast a message to all subscribed clients for an event."""
         await emit_to_requested_sids(event_name, data, camera_id)
 
+    async def process_batch_queue(self):
+        """Processes the batch queue periodically."""
+        while True:
+            try:
+                batch = []
+                for _ in range(self.batch_size):
+                    item = await self.batch_queue.get()
+                    batch.append(item)
+                    self.batch_queue.task_done()
+
+                if batch:
+                    async with async_session() as session:
+                        traffic_operation = TrafficOperation(session)
+                        try:
+                            for traffic_data in batch:
+                                await traffic_operation.create_traffic(traffic_data)
+                            await session.commit()
+                            print(f"[INFO] Successfully stored {len(batch)} traffic records.")
+                        except Exception as e:
+                            await session.rollback()
+                            print(f"[ERROR] Failed to store traffic records in batch: {e}")
+                        finally:
+                            await session.close()
+            except Exception as e:
+                print(f"[ERROR] Batch processing error: {e}")
+
+            # Wait for the next processing interval
+            await asyncio.sleep(self.batch_processing_interval)
+
+
     async def _handle_plates_data(self, message):
         # print("Plate data recived")
         message_body = message["messageBody"]
         camera_id = message_body.get("camera_id")
         timestamp = message_body.get("timestamp")
+        cars = message_body.get("cars", [])
 
-
+        # save_plates_data_to_db.delay(camera_id, timestamp, cars)
         try:
-            async with async_session() as session:
-                traffic_operation = TrafficOperation(session)
+            for car in cars:
+                plate_number = car.get("plate", {}).get("plate", "Unknown")
+                ocr_accuracy = car.get("ocr_accuracy", "Unknown")
+                vision_speed = car.get("vision_speed", 0.0)
+                plate_image_base64 = car.get("plate", {}).get("plate_image", "")
 
-                try:
-                    for car in message_body.get("cars", []):
-                        plate_number = car.get("plate", {}).get("plate", "Unknown")
-                        ocr_accuracy = car.get("ocr_accuracy", "Unknown")
-                        vision_speed = car.get("vision_speed", 0.0)
-                        plate_image_base64 = car.get("plate", {}).get("plate_image", "")
-                        # Create a TrafficCreate object for the car
-                        traffic_data = TrafficCreate(
-                            plate_number=plate_number,
-                            ocr_accuracy=ocr_accuracy,
-                            vision_speed=vision_speed,
-                            plate_image_path=plate_image_base64,
-                            timestamp=timestamp,
-                            camera_id=camera_id,
-                        )
+                # Create a TrafficCreate object
+                traffic_data = TrafficCreate(
+                    plate_number=plate_number,
+                    ocr_accuracy=ocr_accuracy,
+                    vision_speed=vision_speed,
+                    plate_image_path=plate_image_base64,
+                    timestamp=timestamp,
+                    camera_id=camera_id,
+                )
 
-                        # Use the TrafficOperation to store the traffic data
-                        traffic_entry = await traffic_operation.create_traffic(traffic_data)
-                        print(f"[INFO] Stored traffic data: {traffic_entry.id} for plate {plate_number}")
-
-                except SQLAlchemyError as e:
-                    print(f"[ERROR] Database error while storing traffic data: {e}")
-                    await session.rollback()
-                finally:
-                    await session.close()
-
+                # Enqueue the traffic data for batch processing
+                await self.batch_queue.put(traffic_data)
+            print(f"[INFO] Enqueued {len(cars)} traffic records for batch processing.")
         except Exception as e:
-            print(f"[ERROR] Unexpected error: {e}")
-
+            print(f"[ERROR] Failed to handle plates data: {e}")
 
         socketio_message = {
             "messageType": "plates_data",
@@ -405,9 +423,6 @@ class SimpleTCPClient(basic.LineReceiver):
 
     async def _handle_resources(self, message):
         print(f"[INFO] Resources received: {message['messageBody']}")
-        # cpu_usage = message["messageBody"].get("CPU_USAGE")
-        # ram_usage = message["messageBody"].get("RAM_USAGE")
-        # free_space_percentage = message["messageBody"].get("Free_Space_Percentage")
         # Process resource data here (e.g., log it or trigger some actions)
         message["messageBody"]["lpr_id"] = self.factory.lpr_id
         asyncio.ensure_future(self._broadcast_to_socketio("resources", message['messageBody']))
@@ -534,37 +549,9 @@ class ReconnectingTCPClientFactory(protocol.ReconnectingClientFactory):
         self._attempt_reconnect()
 
 
-
-
-
-
-# def connect_to_server(server_ip, port, auth_token):
-#     factory = ReconnectingTCPClientFactory(server_ip, port, auth_token)
-#     factory._attempt_reconnect()  # Start initial connection attempt
-#     return factory
-
-
-
 def send_command_to_server(factory, command_data):
     if factory.authenticated and factory.active_protocol:
         print(f"[INFO] Sending command to server: {command_data}")
         factory.active_protocol.send_command(command_data)
     else:
         print("[ERROR] Cannot send command: Client is not authenticated or connected.")
-
-# def graceful_shutdown(signal, frame):
-#     print("Shutting down gracefully...")
-#     reactor.stop()
-
-
-# def start_reactor():
-#     reactor.run()
-
-
-# if __name__ == "__main__":
-#     server_ip = "185.81.99.23"
-#     port = 45
-
-#     # Connect to the server and start reactor
-#     factory = connect_to_server(server_ip, port)
-#     start_reactor()

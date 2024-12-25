@@ -21,7 +21,6 @@ services:
   alembic:
     build:
       context: ./backend
-      # dockerfile: ./Dockerfile
     container_name: sazman_alembic
     restart: on-failure
     depends_on:
@@ -42,7 +41,6 @@ services:
   backend:
     build:
       context: ./backend
-      # dockerfile: ./Dockerfile
     container_name: sazman_backend
     restart: on-failure
     command:
@@ -76,12 +74,20 @@ services:
   celery_worker:
     build:
       context: ./backend
-      # dockerfile: ./Dockerfile
+    restart: on-failure
     container_name: sazman_celery
-    command: celery -A task_manager.celery_app worker --loglevel=info
+    command: celery -A task_manager.celery_app worker --loglevel=info --concurrency=2
+    volumes:
+      - ./backend:/app
+      - ./backend/certs:/app/certs
+    env_file:
+      - ./backend/.env
     depends_on:
       - redis
       - backend
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
 
   frontend:
     image: nginx:1.22

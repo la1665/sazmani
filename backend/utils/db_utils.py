@@ -23,50 +23,18 @@ from schema.camera import CameraCreate
 from tcp.tcp_manager import add_connection
 
 
-default_users = [
-    {
-        "username":"2",
-        "email":"user2@example.com",
-        "user_type":UserType.STAFF,
-        "password":"2"
-    },
-    # {
-    #     "username":"3",
-    #     "email":"user3@example.com",
-    #     "user_type":UserType.STAFF,
-    #     "password":"3"
-    # },
-    # {
-    #     "username":"4",
-    #     "email":"user4@example.com",
-    #     "user_type":UserType.VIEWER,
-    #     "password":"4"
-    # },
-    # {
-    #     "username":"5",
-    #     "email":"user5@example.com",
-    #     "user_type":UserType.USER,
-    #     "password":"5"
-    # },
-    # {
-    #     "username":"6",
-    #     "email":"user6@example.com",
-    #     "user_type":UserType.USER,
-    #     "password":"6"
-    # },
-]
 
 
 default_buildings = [
     {
-            "name": "مرکزی",
-            "latitude": "98.0.0",
-            "longitude": "98.0.0",
-            "description": "شعبه مرکزی",
-            "is_active": True,
-            "created_at": datetime.utcnow(),  # Add timestamp
-            "updated_at": datetime.utcnow(),  # Add timestamp
-        },
+        "name": "مرکزی",
+        "latitude": "98.0.0",
+        "longitude": "98.0.0",
+        "description": "شعبه مرکزی",
+        "is_active": True,
+        "created_at": datetime.utcnow(),  # Add timestamp
+        "updated_at": datetime.utcnow(),  # Add timestamp
+    },
 ]
 
 default_gates = [
@@ -176,7 +144,7 @@ default_lprs = [
 
 default_cameras = [
     # {
-    #   "name": "دوربین ۱",
+    #   "name": "دوربین اصلی",
     #   "latitude": "1.0.1",
     #   "longitude": "1.0.1",
     #   "description": "دوربین اصلی گیت",
@@ -187,7 +155,7 @@ default_cameras = [
     #   "updated_at": datetime.utcnow(),
     # },
     {
-      "name": "دوربین دوم",
+      "name": "دوربین اول ",
       "latitude": "1.0.1",
       "longitude": "1.0.1",
       "description": "دوربین خروج",
@@ -219,49 +187,6 @@ async def create_default_admin(db: AsyncSession):
         print("Admin user created.")
 
 async def initialize_defaults(db: AsyncSession):
-
-    # user_op = UserOperation(db)
-    # for user in default_users:
-    #     db_user = await user_op.get_user_username(user.get("username"))
-    #     if db_user is None:
-    #         user_obj = UserCreate(
-    #             username=user["username"],
-    #             email=user["email"],
-    #             user_type=user["user_type"],
-    #             password=user["password"],
-    #         )
-    #         new_user = await user_op.create_user(user_obj)
-    #         print(f"Created user with ID: {new_user.id}")
-    # print("default users created!!!")
-
-    # building_op = BuildingOperation(db)
-    # for building in default_buildings:
-    #     db_building = await building_op.get_one_object_name(building.get("name"))
-    #     if db_building is None:
-
-    #         building_obj = BuildingCreate(
-    #             name=building["name"],
-    #             description=building["description"],
-    #             latitude=building["latitude"],
-    #             longitude=building["longitude"],
-    #         )
-    #         new_building = await building_op.create_building(building_obj)
-    #         print(f"Created building with ID: {new_building.id}")
-    # print("default buildings created!!!")
-
-    # gate_op = GateOperation(db)
-    # for gate in default_gates:
-    #     db_gate = await gate_op.get_one_object_name(gate.get("name"))
-    #     if db_gate is None:
-    #         gate_obj = GateCreate(
-    #             name=gate["name"],
-    #             description=gate["description"],
-    #             gate_type=gate["gate_type"],
-    #             building_id=gate["building_id"],
-    #         )
-    #         new_gate = await gate_op.create_gate(gate_obj)
-    #         print(f"Created gate with ID: {new_gate.id}")
-    # print("default gates created!!!")
 
     camera_setting_op = CameraSettingOperation(db)
     for setting in default_camera_settings:
@@ -297,9 +222,7 @@ async def initialize_defaults(db: AsyncSession):
         db_lpr = await lpr_op.get_one_object_name(lpr["name"])
         if db_lpr:
             print("lpr object already exists.")
-            # print("connecting to twisted ...")
-            await add_connection(db_lpr.id, db_lpr.ip, db_lpr.port, db_lpr.auth_token)
-            return
+            continue
         else:
             lpr_obj = LprCreate(
                 name=lpr["name"],
@@ -321,7 +244,7 @@ async def initialize_defaults(db: AsyncSession):
             print("camera object already exists.")
             print("connecting to twisted ...")
             await add_connection(db, lpr_id=db_camera.lpr_id)
-            return
+            continue
         camera_obj = CameraCreate(
             name=camera["name"],
             description=camera["description"],
