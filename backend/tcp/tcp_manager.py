@@ -13,7 +13,7 @@ async def add_connection(session: AsyncSession, lpr_id: int|None):
     Add a new connection for the LPR.
     """
     from tcp.tcp_client import ReconnectingTCPClientFactory
-    global connections
+    # global connections
     if lpr_id:
         lpr_query = await session.execute(select(DBLpr).where(DBLpr.id == lpr_id))
         db_lpr = lpr_query.unique().scalar_one_or_none()
