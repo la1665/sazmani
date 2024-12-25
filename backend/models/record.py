@@ -1,4 +1,5 @@
 from sqlalchemy import Column, Integer, String, DateTime
+
 from database.engine import Base
 
 class DBRecord(Base):

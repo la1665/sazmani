@@ -1,4 +1,3 @@
-import threading
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from twisted.internet import reactor
@@ -62,7 +61,6 @@ async def remove_connection(lpr_id: int):
     if lpr_id in connections:
         factory = connections.pop(lpr_id)
         print(f"[DEBUG] Active reactor: {reactor}")
-        print(f"[DEBUG] Reactor is running in thread: {threading.current_thread().name}")
 
         # Stop reconnection attempts
         reactor.callFromThread(factory.stopTrying)

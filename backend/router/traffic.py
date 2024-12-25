@@ -65,11 +65,9 @@ async def get_traffic_data(
     current_user: UserInDB = Depends(get_admin_user),
 ):
     """
-    Retrieve traffic data with pagination and include a downloadable ZIP file link.
+    Retrieve traffic data with pagination.
     """
     traffic_op = TrafficOperation(db)
-
-    # Get paginated data for display
     paginated_result = await traffic_op.get_all_traffics(
         page=page,
         page_size=page_size,
@@ -83,10 +81,49 @@ async def get_traffic_data(
     if not paginated_result["items"]:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No traffic data found for the given filters.")
 
-    # Get all matching data (without pagination) for the Excel and ZIP file
+    # Modify plate image URLs for display in the response
+    for traffic in paginated_result["items"]:
+        traffic.plate_image_url = None
+        if traffic.plate_image_path:
+            filename = Path(traffic.plate_image_path).name
+            traffic.plate_image_url = f"{request.base_url}uploads/plate_images/{filename}"
+
+    # Generate export link
+    export_link = (
+        f"{request.base_url}v1/traffic/export?"
+        f"gate_id={gate_id or ''}&"
+        f"camera_id={camera_id or ''}&"
+        f"plate_number={plate_number or ''}&"
+        f"start_date={start_date.isoformat() if start_date else ''}&"
+        f"end_date={end_date.isoformat() if end_date else ''}"
+    )
+
+    # Include export link in the response
+    paginated_result["export_url"] = export_link
+
+    return paginated_result
+
+
+@traffic_router.get("/export", status_code=status.HTTP_200_OK)
+async def export_traffic_data(
+    request: Request,
+    gate_id: int = Query(None, description="Filter by gate ID"),
+    camera_id: int = Query(None, description="Filter by camera ID"),
+    plate_number: str = Query(None, description="Filter by partial or exact plate number"),
+    start_date: datetime = Query(None, description="Filter records from this date (ISO format)"),
+    end_date: datetime = Query(None, description="Filter records up to this date (ISO format)"),
+    db: AsyncSession = Depends(get_db),
+    current_user: UserInDB = Depends(get_admin_user),
+):
+    """
+    Generate a ZIP file containing traffic data and plate images (limited to 1000 records).
+    """
+    traffic_op = TrafficOperation(db)
+
+    # Get all matching data (limited to 1000 records)
     all_data_result = await traffic_op.get_all_traffics(
-        page=None,  # Pass None or ignore pagination for fetching all data
-        page_size=None,
+        page=1,
+        page_size=1000,
         gate_id=gate_id,
         camera_id=camera_id,
         plate_number=plate_number,
@@ -94,6 +131,9 @@ async def get_traffic_data(
         end_date=end_date
     )
     all_items = all_data_result["items"]
+
+    if not all_items:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No traffic data found for the given filters.")
 
     # Temporary directory for file creation
     with TemporaryDirectory() as temp_dir:
@@ -149,16 +189,7 @@ async def get_traffic_data(
         permanent_zip_path = ZIP_FILE_DIR / zip_file_name
         shutil.copyfile(persistent_zip_path, permanent_zip_path)
 
-    # Generate export and ZIP file URLs
+    # Generate the download URL
     zip_file_url = f"{request.base_url}{permanent_zip_path}"
 
-    # Modify plate image URLs
-    for traffic in paginated_result["items"]:
-        traffic.plate_image_url = None
-        if traffic.plate_image_path:
-            filename = Path(traffic.plate_image_path).name
-            traffic.plate_image_url = f"{request.base_url}uploads/plate_images/{filename}"
-
-    paginated_result["zip_file_url"] = zip_file_url
-
-    return paginated_result
+    return {"message": "Traffic data exported successfully.", "zip_file_url": zip_file_url}

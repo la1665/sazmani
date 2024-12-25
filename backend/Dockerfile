@@ -21,12 +21,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /app
 
 # Copy requirements file and install Python dependencies
-COPY requirements.txt .
+COPY requirements.txt /app/
 RUN pip install --upgrade pip
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy the rest of the application code
-COPY . .
+# COPY ./alembic /app/alembic
+# COPY ./backend /app/backend
+# COPY alembic.ini /app/alembic.ini
+COPY . /app/
 
 # Create necessary directories with appropriate permissions
 RUN mkdir -p logs && chmod 755 logs
@@ -35,7 +38,7 @@ RUN mkdir -p logs && chmod 755 logs
 RUN mkdir -p /app/uploads && chmod -R 755 /app/uploads
 
 # Expose the application port
-EXPOSE 8000
+# EXPOSE 8000
 
 # Start the application
-CMD ["uvicorn", "main:app_socket", "--host", "0.0.0.0", "--port", "8000", "--workers", "2", "--log-level", "debug"]
+# CMD ["uvicorn", "main:app_socket", "--host", "0.0.0.0", "--port", "8000", "--workers", "2", "--log-level", "debug"]

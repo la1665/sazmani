@@ -9,17 +9,22 @@ import hmac
 import hashlib
 import asyncio
 from pathlib import Path
+from collections import deque
 from twisted.internet import protocol
 from twisted.protocols import basic
+from twisted.internet.defer import ensureDeferred, inlineCallbacks
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+from concurrent.futures import ThreadPoolExecutor
 
 from settings import settings
-from database.engine import async_session
+from database.engine import twisted_session
 from socket_management import emit_to_requested_sids
 from crud.traffic import TrafficOperation
 from schema.traffic import TrafficCreate
 from models.record import DBRecord
+from models.lpr import DBLpr
 
 
 
@@ -28,56 +33,45 @@ RECORDINGS_DIR = BASE_UPLOAD_DIR / "recordings"
 RECORDINGS_DIR.mkdir(parents=True, exist_ok=True)  # Ensure the directory exists
 
 
-
 async def fetch_lpr_settings(lpr_id: int):
-    from sqlalchemy.future import select
-    from models.lpr import DBLpr
+    """Fetch LPR settings from the database."""
+    async with twisted_session() as session:
+        try:
+            query = await session.execute(select(DBLpr).where(DBLpr.id == lpr_id))
+            lpr = query.scalar_one_or_none()
+            if not lpr:
+                raise ValueError(f"LPR with ID {lpr_id} not found.")
 
-    async with async_session() as session:
-        query = await session.execute(select(DBLpr).where(DBLpr.id == lpr_id))
-        lpr = query.scalar_one_or_none()
-        if not lpr:
-            raise ValueError(f"LPR with ID {lpr_id} not found.")
-        # Prepare data for cameras and their settings
-        cameras_data = []
-        for camera in lpr.cameras:
-            camera_data = {
-                "camera_id": camera.id,
-                "settings": []
-            }
-            for setting in camera.settings:
-                if setting.setting_type.value == "int":
-                    value = int(setting.value)
-                elif setting.setting_type.value == "float":
-                    value = float(setting.value)
-                elif setting.setting_type.value == "string":
-                    value = str(setting.value)
-                else:
-                    value = setting.value
-                setting_data = {
-                    "name": setting.name,
-                    "value": value
-                }
-                camera_data["settings"].append(setting_data)
-            cameras_data.append(camera_data)
+            print(f"founded lpr is: {lpr.id}")
+            return prepare_lpr_data(lpr)
+        except Exception as e:
+            print(f"[ERROR] Failed to fetch LPR settings: {e}")
+            raise
 
-        settings_data = []
-        for setting in lpr.settings:
-            if setting.setting_type.value == "int":
-                value = int(setting.value)
-            elif setting.setting_type.value == "float":
-                value = float(setting.value)
-            elif setting.setting_type.value == "string":
-                value = str(setting.value)
-            else:
-                value = setting.value
-            setting_data = {
-                "name": setting.name,
-                "value": value
-            }
-            settings_data.append(setting_data)
 
-        return {"lpr_id": lpr.id, "settings": settings_data, "cameras_data": cameras_data}
+def prepare_lpr_data(lpr):
+    """Prepare LPR data for the message payload."""
+    cameras_data = [
+        {
+            "camera_id": camera.id,
+            "settings": [{"name": setting.name, "value": parse_setting_value(setting)} for setting in camera.settings],
+        }
+        for camera in lpr.cameras
+    ]
+    settings_data = [{"name": setting.name, "value": parse_setting_value(setting)} for setting in lpr.settings]
+    print(settings_data)
+    return {"lpr_id": lpr.id, "settings": settings_data, "cameras_data": cameras_data}
+
+
+def parse_setting_value(setting):
+    """Parse setting value based on its type."""
+    if setting.setting_type.value == "int":
+        return int(setting.value)
+    elif setting.setting_type.value == "float":
+        return float(setting.value)
+    elif setting.setting_type.value == "string":
+        return str(setting.value)
+    return setting.value
 
 
 class SimpleTCPClient(basic.LineReceiver):
@@ -87,12 +81,14 @@ class SimpleTCPClient(basic.LineReceiver):
         self.auth_message_id = None
         self.incomplete_data = ""
         self.authenticated = False  # Track authentication status locally
-        self.message_queue = asyncio.Queue()
+        self.message_queue = asyncio.Queue(maxsize=100)
         self.lock = asyncio.Lock()
-
         self.buffer = b""
         self.expected_length = None
         self.video_writer = None
+        self.executor = ThreadPoolExecutor(max_workers=2)
+        self.frame_buffer = deque(maxlen=30)
+        self.batch_size = 10
 
     def connectionMade(self):
         """Called when a connection to the server is made."""
@@ -143,30 +139,25 @@ class SimpleTCPClient(basic.LineReceiver):
                 full_message = full_message.strip()  # Remove extra spaces or newlines (if any)
 
                 if full_message:
-                    # Enqueue the complete message for asynchronous processing
-                    asyncio.create_task(self.message_queue.put(full_message))
+                    try:
+                        # Attempt to add the message to the queue
+                        self.message_queue.put_nowait(full_message)
+                    except asyncio.QueueFull:
+                        # If the queue is full, remove the oldest message and add the new one
+                        print("[WARN] Message queue is full. Dropping the oldest message.")
+                        self.message_queue.get_nowait()  # Remove the oldest message
+                        self.message_queue.put_nowait(full_message)  # Add the new message
         except UnicodeDecodeError as e:
             print(f"[ERROR] Failed to decode data: {e}")
 
-
     async def process_message_queue(self):
-        """Asynchronously processes messages from the queue."""
-        try:
-            while True:
-                try:
-                    message = await self.message_queue.get()
-                    await self._process_message(message)
-                except Exception as e:
-                    print(f"[ERROR] Exception in processing message: {e}")
-                finally:
-                    if not self.message_queue.empty():
-                        self.message_queue.task_done()
-        except asyncio.CancelledError:
-            print("[INFO] Message processing task cancelled. Cleaning up...")
-
-            # Ensure no unprocessed items are left in the queue
-            while not self.message_queue.empty():
-                self.message_queue.get_nowait()
+        while True:
+            message = await self.message_queue.get()
+            try:
+                await self._process_message(message)
+            except Exception as e:
+                print(f"[ERROR] Exception in processing message: {e}")
+            finally:
                 self.message_queue.task_done()
 
     async def _process_message(self, message):
@@ -188,36 +179,76 @@ class SimpleTCPClient(basic.LineReceiver):
         except json.JSONDecodeError as e:
             print(f"[ERROR] Failed to parse message: {e}")
 
+    async def _fetch_and_send_lpr_settings(self):
+        try:
+            print(self.factory.lpr_id)
+            # lpr_settings = reactor.callInThread(fetch_lpr_settings(self.factory.lpr_id))
+            # lpr_settings = await ensureDeferred(fetch_lpr_settings(self.factory.lpr_id))
+            lpr_settings = await reactor.callInThread(lambda: ensureDeferred(fetch_lpr_settings(self.factory.lpr_id)))
+            # lpr_settings = await fetch_lpr_settings(self.factory.lpr_id)
+            hmac_key = settings.HMAC_SECRET_KEY.encode()
+            data_str = json.dumps(lpr_settings, separators=(",", ":"), sort_keys=True)
+            hmac_signature = hmac.new(hmac_key, data_str.encode(), hashlib.sha256).hexdigest()
+
+            settings_message = {
+                "messageId": self.auth_message_id,
+                "messageType": "lpr_settings",
+                "messageBody": {
+                    "data": lpr_settings,
+                    "hmac": hmac_signature,
+                },
+            }
+            self._send_message(json.dumps(settings_message))
+            print("[INFO] LPR settings sent.")
+        except Exception as e:
+            print(f"[ERROR] Failed to send LPR settings: {e}")
+
     async def _handle_acknowledgment(self, message):
         reply_to = message["messageBody"].get("replyTo")
         if reply_to == self.auth_message_id:
             print("[INFO] Authentication successful.")
             self.authenticated = True
             self.factory.authenticated = True
-
-            # Fetch and send LPR settings
-            try:
-                # Assuming LPR ID is passed in the factory or another way
-                lpr_settings = await fetch_lpr_settings(self.factory.lpr_id)
-                hmac_key = settings.HMAC_SECRET_KEY.encode()
-                data_str = json.dumps(lpr_settings, separators=(',', ':'), sort_keys=True)
-                hmac_signature = hmac.new(hmac_key, data_str.encode(), hashlib.sha256).hexdigest()
-                settings_message = {
-                    "messageId": self.auth_message_id,
-                    "messageType": "lpr_settings",
-                    "messageBody":
-                        {
-                            "data": lpr_settings,
-                            "hmac": hmac_signature
-                        }
-                }
-                self._send_message(json.dumps(settings_message))
-                print("[INFO] LPR settings sent to the server.")
-            except Exception as e:
-                print(f"[ERROR] Failed to send LPR settings: {e}")
-
+            # reactor.callInThread(lambda: ensureDeferred(self._fetch_and_send_lpr_settings()))
+            # await self._fetch_and_send_lpr_settings()
+            asyncio.create_task(self._fetch_and_send_lpr_settings())            # asyncio.ensure_future(self._fetch_and_send_lpr_settings())
         else:
-            print(f"[INFO] Received acknowledgment for message ID: {reply_to}")
+            print(f"[INFO] Acknowledgment for unknown message ID: {reply_to}")
+
+
+    # def _handle_acknowledgment(self, message):
+    #     reply_to = message["messageBody"].get("replyTo")
+    #     if reply_to == self.auth_message_id:
+    #         print("[INFO] Authentication successful.")
+    #         self.authenticated = True
+    #         self.factory.authenticated = True
+
+    #         # Fetch and send LPR settings
+    #         try:
+    #             # Assuming LPR ID is passed in the factory or another way
+    #             # lpr_settings = await fetch_lpr_settings(self.factory.lpr_id)
+    #             # lpr_settings = yield ensureDeferred(fetch_lpr_settings(self.factory.lpr_id))
+    #             lpr_settings = reactor.callWhenRunning(lambda: ensureDeferred(fetch_lpr_settings(self.factory.lpr_id)))
+    #             print(" lpr settings fetched...")
+    #             hmac_key = settings.HMAC_SECRET_KEY.encode()
+    #             data_str = json.dumps(lpr_settings, separators=(',', ':'), sort_keys=True)
+    #             hmac_signature = hmac.new(hmac_key, data_str.encode(), hashlib.sha256).hexdigest()
+    #             settings_message = {
+    #                 "messageId": self.auth_message_id,
+    #                 "messageType": "lpr_settings",
+    #                 "messageBody":
+    #                     {
+    #                         "data": lpr_settings,
+    #                         "hmac": hmac_signature
+    #                     }
+    #             }
+    #             self._send_message(json.dumps(settings_message))
+    #             print("[INFO] LPR settings sent to the server.")
+    #         except Exception as e:
+    #             print(f"[ERROR] Failed to send LPR settings: {e}")
+
+    #     else:
+    #         print(f"[INFO] Received acknowledgment for message ID: {reply_to}")
 
     async def _handle_recording(self, message):
         message_body = message["messageBody"]
@@ -227,20 +258,26 @@ class SimpleTCPClient(basic.LineReceiver):
 
         if end_recording:
             if self.video_writer:
+                await self._write_batch_to_video()
                 self.video_writer.release()
                 title=os.path.basename(self.file_path)
                 # Save the recording information to the database
-                async with async_session() as session:
-                    record = DBRecord(
-                        title=title,
-                        camera_id=int(camera_id),
-                        timestamp=datetime.datetime.now(),
-                        video_url=f"uploads/recordings/{title}"
-                    )
-                    session.add(record)
-                    await session.commit()
+                async with twisted_session() as session:
+                    try:
+                        record = DBRecord(
+                            title=title,
+                            camera_id=int(camera_id),
+                            timestamp=datetime.datetime.now(),
+                            video_url=f"uploads/recordings/{title}"
+                        )
+                        session.add(record)
+                        await session.commit()
 
-                print(f"---------->> Recording saved: {self.file_path}")
+                        print(f"---------->> Recording saved: {self.file_path}")
+                    except Exception as error:
+                        await session.rollback()
+                        print(f"[ERROR] Failed to save recording: {error}")
+
                 self.video_writer = None
             else:
                 print("No active recording to end.")
@@ -261,33 +298,47 @@ class SimpleTCPClient(basic.LineReceiver):
 
         # Initialize video writer if not already done
         if self.video_writer is None:
-            # Generate filename based on camera name and timestamp
-            timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-            filename = f"{camera_id}_{timestamp}.mp4"
+            try:
+                # Generate filename based on camera name and timestamp
+                timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+                filename = f"{camera_id}_{timestamp}.mp4"
 
-            # Ensure directory exists
-            self.file_path = str(RECORDINGS_DIR / filename)
+                # Ensure directory exists
+                self.file_path = str(RECORDINGS_DIR / filename)
 
-            frame_height, frame_width, _ = frame.shape
-            fps = 30  # Adjust FPS as needed
+                frame_height, frame_width, _ = frame.shape
+                fps = 30  # Adjust FPS as needed
 
-            fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-            self.video_writer = cv2.VideoWriter(self.file_path, fourcc, fps, (frame_width, frame_height))
+                fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+                self.video_writer = cv2.VideoWriter(self.file_path, fourcc, fps, (frame_width, frame_height))
 
-            if not self.video_writer.isOpened():
-                print("Failed to open video writer")
-                self.video_writer = None
-                return
+                if not self.video_writer.isOpened():
+                    print("Failed to open video writer")
+                    self.video_writer = None
+                    return
+            except Exception as error:
+                print(f"[ERROR] Failed to initialize video writer: {error}")
+        self.frame_buffer.append(frame)
+        # Write the batch if the buffer is full
+        if len(self.frame_buffer) >= self.batch_size:
+            await self._write_batch_to_video()
 
-        # Write the frame to the video file
-        try:
-            self.video_writer.write(frame)
-        except Exception as e:
-            print(f"Error writing frame to video: {e}")
+    async def _write_batch_to_video(self):
+        """Writes a batch of frames to the video file."""
+        if not self.video_writer or not self.frame_buffer:
+            return
+        frames = list(self.frame_buffer)
+        self.frame_buffer.clear()  # Clear the buffer after collecting frames
+        # Offload the batch writing to a separate thread
+        await asyncio.get_event_loop().run_in_executor(self.executor, lambda: [self.video_writer.write(frame) for frame in frames])
+
 
     async def _broadcast_to_socketio(self, event_name, data, camera_id=None):
         """Efficiently broadcast a message to all subscribed clients for an event."""
-        await emit_to_requested_sids(event_name, data, camera_id)
+        try:
+            await emit_to_requested_sids(event_name, data, camera_id)
+        except:
+            print("no available socket")
 
     async def _handle_plates_data(self, message):
         # print("Plate data recived")
@@ -295,39 +346,36 @@ class SimpleTCPClient(basic.LineReceiver):
         camera_id = message_body.get("camera_id")
         timestamp = message_body.get("timestamp")
 
+        for car in message_body.get("cars", []):
+            plate_number = car.get("plate", {}).get("plate", "Unknown")
+            ocr_accuracy = car.get("ocr_accuracy", "Unknown")
+            vision_speed = car.get("vision_speed", 0.0)
+            plate_image_base64 = car.get("plate", {}).get("plate_image", "")
 
-        try:
-            async with async_session() as session:
-                traffic_operation = TrafficOperation(session)
+            # Create a TrafficCreate object for the car
+            traffic_data = TrafficCreate(
+                plate_number=plate_number,
+                ocr_accuracy=ocr_accuracy,
+                vision_speed=vision_speed,
+                plate_image_path=plate_image_base64,
+                timestamp=timestamp,
+                camera_id=camera_id,
+            )
 
-                try:
-                    for car in message_body.get("cars", []):
-                        plate_number = car.get("plate", {}).get("plate", "Unknown")
-                        ocr_accuracy = car.get("ocr_accuracy", "Unknown")
-                        vision_speed = car.get("vision_speed", 0.0)
-                        plate_image_base64 = car.get("plate", {}).get("plate_image", "")
-                        # Create a TrafficCreate object for the car
-                        traffic_data = TrafficCreate(
-                            plate_number=plate_number,
-                            ocr_accuracy=ocr_accuracy,
-                            vision_speed=vision_speed,
-                            plate_image_path=plate_image_base64,
-                            timestamp=timestamp,
-                            camera_id=camera_id,
-                        )
+        # async with twisted_session() as session:
+        #     try:
+        #         traffic_operation = TrafficOperation(session)
 
-                        # Use the TrafficOperation to store the traffic data
-                        traffic_entry = await traffic_operation.create_traffic(traffic_data)
-                        print(f"[INFO] Stored traffic data: {traffic_entry.id} for plate {plate_number}")
+        #         # Use the TrafficOperation to store the traffic data
+        #         traffic_entry = await traffic_operation.create_traffic(traffic_data)
+        #         print(f"[INFO] Stored traffic data: {traffic_entry.id} for plate {plate_number}")
 
-                except SQLAlchemyError as e:
-                    print(f"[ERROR] Database error while storing traffic data: {e}")
-                    await session.rollback()
-                finally:
-                    await session.close()
+        #     except SQLAlchemyError as e:
+        #         print(f"[ERROR] Database error while storing traffic data: {e}")
+        #         await session.rollback()
+        #     finally:
+        #         await session.close()
 
-        except Exception as e:
-            print(f"[ERROR] Unexpected error: {e}")
 
 
         socketio_message = {
@@ -419,6 +467,9 @@ class SimpleTCPClient(basic.LineReceiver):
     def connectionLost(self, reason):
         print(f"[INFO] Connection lost: {reason}")
         self.factory.clientConnectionLost(self.transport.connector, reason)
+        # Shutdown the executor to release resources
+        if self.executor:
+            self.executor.shutdown(wait=True)
 
     async def _handle_heartbeat(self, message):
         """
