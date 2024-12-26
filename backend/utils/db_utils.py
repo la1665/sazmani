@@ -23,31 +23,25 @@ from schema.camera import CameraCreate
 from tcp.tcp_manager import add_connection
 
 
+default_building = {
+    "name": "مرکزی",
+    "latitude": "98.0.0",
+    "longitude": "98.0.0",
+    "description": "شعبه مرکزی",
+    "is_active": True,
+    "created_at": datetime.utcnow(),  # Add timestamp
+    "updated_at": datetime.utcnow(),  # Add timestamp
+}
 
-
-default_buildings = [
-    {
-        "name": "مرکزی",
-        "latitude": "98.0.0",
-        "longitude": "98.0.0",
-        "description": "شعبه مرکزی",
-        "is_active": True,
-        "created_at": datetime.utcnow(),  # Add timestamp
-        "updated_at": datetime.utcnow(),  # Add timestamp
-    },
-]
-
-default_gates = [
-    {
-      "name": "گیت اصلی ساختمان مرکزی",
-      "description": "گیت اصلی شعبه مرکزی تهران",
-      "gate_type": GateType.BOTH.name,
-      "building_id": 1,
-      "is_active": True,
-      "created_at": datetime.utcnow(),  # Add timestamp
-      "updated_at": datetime.utcnow(),
-    },
-]
+default_gate = {
+    "name": "گیت اصلی ساختمان مرکزی",
+    "description": "گیت اصلی شعبه مرکزی تهران",
+    "gate_type": GateType.BOTH.name,
+    "building_id": 1,
+    "is_active": True,
+    "created_at": datetime.utcnow(),  # Add timestamp
+    "updated_at": datetime.utcnow(),
+}
 
 default_camera_settings = [
     {"name": "ViewPointX", "value": "0", "setting_type":SettingType.INT, "is_active": True, "created_at": datetime.utcnow(), "updated_at": datetime.utcnow(),},
@@ -114,60 +108,30 @@ default_lpr_settings = [
     {"name": "ocr_prob", "value": "0.65", "setting_type": LprSettingType.FLOAT, "is_active": True, "created_at": datetime.utcnow(), "updated_at": datetime.utcnow(),}
 ]
 
-default_lprs = [
-    # {
-    #   "name": "ماژول پلاک خوان۱",
-    #   "description": "پلاک خوان دوربین گیت۱ برای ورودی/خروجی",
-    #   "ip": "192.168.65.254",
-    #   "port": 45,
-    #   "auth_token": "dBzsEzYuBy6wgiGlI4UUXJPLp1OoS0Cc2YgyCFOCh2U7pvH16ucL1334OjCmeWFJ",
-    #   "latitude": "98.0.0",
-    #   "longitude": "98.0.0",
-    #   "is_active": True,
-    #   "created_at": datetime.utcnow(),  # Add timestamp
-    #   "updated_at": datetime.utcnow(),
-    # },
-    {
-      "name": "ماژول ۱",
-      "description": "پلاک خوان دوربین گیت۱ برای ورودی/خروجی",
-      "ip": "185.81.99.23",
-      "port": 45,
-      "auth_token": "dBzsEzYuBy6wgiGlI4UUXJPLp1OoS0Cc2YgyCFOCh2U7pvH16ucL1334OjCmeWFJ",
-      "latitude": "98.0.0",
-      "longitude": "98.0.0",
-      "is_active": True,
-      "created_at": datetime.utcnow(),  # Add timestamp
-      "updated_at": datetime.utcnow(),
-    },
-]
+default_lpr = {
+    "name": "ماژول ۱",
+    "description": "پلاک خوان دوربین گیت۱ برای ورودی/خروجی",
+    "ip": "185.81.99.23",
+    # "ip": "192.168.65.254",
+    "port": 45,
+    "auth_token": "dBzsEzYuBy6wgiGlI4UUXJPLp1OoS0Cc2YgyCFOCh2U7pvH16ucL1334OjCmeWFJ",
+    "latitude": "98.0.0",
+    "longitude": "98.0.0",
+    "is_active": True,
+    "created_at": datetime.utcnow(),  # Add timestamp
+    "updated_at": datetime.utcnow(),
+}
 
-
-default_cameras = [
-    # {
-    #   "name": "دوربین اصلی",
-    #   "latitude": "1.0.1",
-    #   "longitude": "1.0.1",
-    #   "description": "دوربین اصلی گیت",
-    #   "gate_id": 1,
-    #   "lpr_id": 1,
-    #   "is_active": True,
-    #   "created_at": datetime.utcnow(),  # Add timestamp
-    #   "updated_at": datetime.utcnow(),
-    # },
-    {
-      "name": "دوربین اول ",
-      "latitude": "1.0.1",
-      "longitude": "1.0.1",
-      "description": "دوربین خروج",
-      "gate_id": 1,
-      "lpr_id": 1,
-      "is_active": True,
-      "created_at": datetime.utcnow(),  # Add timestamp
-      "updated_at": datetime.utcnow(),
-    },
-]
-
-
+default_camera = {
+    "name": "دوربین اصلی",
+    "latitude": "1.0.1",
+    "longitude": "1.0.1",
+    "description": "دوربین اصلی گیت",
+    "gate_id": 1,
+    "is_active": True,
+    "created_at": datetime.utcnow(),  # Add timestamp
+    "updated_at": datetime.utcnow(),
+}
 
 async def create_default_admin(db: AsyncSession):
     if settings.ADMIN_USERNAME:
@@ -218,42 +182,38 @@ async def initialize_defaults(db: AsyncSession):
 
 
     lpr_op = LprOperation(db)
-    for lpr in default_lprs:
-        db_lpr = await lpr_op.get_one_object_name(lpr["name"])
-        if db_lpr:
-            print("lpr object already exists.")
-            continue
-        else:
-            lpr_obj = LprCreate(
-                name=lpr["name"],
-                description=lpr["description"],
-                latitude=lpr["latitude"],
-                longitude=lpr["longitude"],
-                ip=lpr["ip"],
-                port=lpr["port"],
-            )
-            new_lpr = await lpr_op.create_lpr(lpr_obj)
-            print(f"Created lpr with ID: {new_lpr.id}")
+    db_lpr = await lpr_op.get_one_object_name(default_lpr["name"])
+    if db_lpr:
+        print("lpr object already exists.")
+    else:
+        lpr_obj = LprCreate(
+            name=default_lpr["name"],
+            description=default_lpr["description"],
+            latitude=default_lpr["latitude"],
+            longitude=default_lpr["longitude"],
+            ip=default_lpr["ip"],
+            port=default_lpr["port"],
+        )
+        db_lpr = await lpr_op.create_lpr(lpr_obj)
+        print(f"Created lpr with ID: {db_lpr.id}")
     print("default lprs created!!!")
 
 
     camera_op = CameraOperation(db)
-    for camera in default_cameras:
-        db_camera = await camera_op.get_one_object_name(camera.get("name"))
-        if db_camera:
-            print("camera object already exists.")
-            print("connecting to twisted ...")
-            await add_connection(db, lpr_id=db_camera.lpr_id)
-            continue
-        camera_obj = CameraCreate(
-            name=camera["name"],
-            description=camera["description"],
-            latitude=camera["latitude"],
-            longitude=camera["longitude"],
-            gate_id=camera["gate_id"],
-            lpr_id=camera["lpr_id"],
-        )
-        new_camera = await camera_op.create_camera(camera_obj)
-        print(f"Created camera with ID: {new_camera.id}")
-        await add_connection(db, lpr_id=new_camera.lpr_id)
+    db_camera = await camera_op.get_one_object_name(default_camera.get("name"))
+    if db_camera:
+        print("camera object already exists.")
+        print("connecting to twisted ...")
+        await add_connection(db, lpr_id=db_camera.lpr_id)
+    camera_obj = CameraCreate(
+        name=default_camera["name"],
+        description=default_camera["description"],
+        latitude=default_camera["latitude"],
+        longitude=default_camera["longitude"],
+        gate_id=default_camera["gate_id"],
+        lpr_id=db_lpr.id,
+    )
+    new_camera = await camera_op.create_camera(camera_obj)
+    print(f"Created camera with ID: {new_camera.id}")
+    await add_connection(db, lpr_id=new_camera.lpr_id)
     print("default cameras created!!!")

@@ -12,8 +12,8 @@ import sqlalchemy as sa
 from sqlalchemy.orm import Session
 from database.engine import Base
 from utils.db_utils import (
-    default_buildings,
-    default_gates,
+    default_building,
+    default_gate,
 )
 
 # revision identifiers, used by Alembic.
@@ -27,83 +27,30 @@ def upgrade() -> None:
     session = Session(bind=bind)
 
     # Add default buildings
-    for building in default_buildings:
-        session.execute(
-            sa.text(
-                """
-                INSERT INTO buildings (name, latitude, longitude, description, is_active, created_at, updated_at)
-                VALUES (:name, :latitude, :longitude, :description, :is_active, :created_at, :updated_at)
-                ON CONFLICT (name) DO NOTHING
-                """
-            ),
-            building,
-        )
+    # for building in default_buildings:
+    session.execute(
+        sa.text(
+            """
+            INSERT INTO buildings (name, latitude, longitude, description, is_active, created_at, updated_at)
+            VALUES (:name, :latitude, :longitude, :description, :is_active, :created_at, :updated_at)
+            ON CONFLICT (name) DO NOTHING
+            """
+        ),
+        default_building,
+    )
 
     # Add default gates
-    for gate in default_gates:
-        session.execute(
-            sa.text(
-                """
-                INSERT INTO gates (name, description, gate_type, building_id, is_active, created_at, updated_at)
-                VALUES (:name, :description, :gate_type, :building_id, :is_active, :created_at, :updated_at)
-                ON CONFLICT (name) DO NOTHING
-                """
-            ),
-            gate,
-        )
-
-    # # Add default camera settings
-    # for cam_setting in default_camera_settings:
-    #     session.execute(
-    #         sa.text(
-    #             """
-    #             INSERT INTO camera_settings (name, value, setting_type, is_active, created_at, updated_at)
-    #             VALUES (:name, :value, :setting_type, :is_active, :created_at, :updated_at)
-    #             ON CONFLICT (name) DO NOTHING
-    #             """
-    #         ),
-    #         cam_setting,
-    #     )
-
-    # # Add default LPR settings
-    # for lpr_setting in default_lpr_settings:
-    #     session.execute(
-    #         sa.text(
-    #             """
-    #             INSERT INTO lpr_settings (name, value, setting_type, is_active, created_at, updated_at)
-    #             VALUES (:name, :value, :setting_type, :is_active, :created_at, :updated_at)
-    #             ON CONFLICT (name) DO NOTHING
-    #             """
-    #         ),
-    #         lpr_setting,
-    #     )
-
-    # Add default LPRs
-    # for lpr in default_lprs:
-    #     session.execute(
-    #         sa.text(
-    #             """
-    #             INSERT INTO lprs (name, description, ip, port, auth_token, latitude, longitude, is_active, created_at, updated_at)
-    #             VALUES (:name, :description, :ip, :port, :auth_token, :latitude, :longitude, :is_active, :created_at, :updated_at)
-    #             ON CONFLICT (name) DO NOTHING
-    #             """
-    #         ),
-    #         lpr,
-    #     )
-
-    # # Add default cameras
-    # for camera in default_cameras:
-    #     session.execute(
-    #         sa.text(
-    #             """
-    #             INSERT INTO cameras (name, description, latitude, longitude, gate_id, lpr_id, is_active, created_at, updated_at)
-    #             VALUES (:name, :description, :latitude, :longitude, :gate_id, :lpr_id, :is_active, :created_at, :updated_at)
-    #             ON CONFLICT (name) DO NOTHING
-    #             """
-    #         ),
-    #         camera,
-    #     )
-
+    # for gate in default_gates:
+    session.execute(
+        sa.text(
+            """
+            INSERT INTO gates (name, description, gate_type, building_id, is_active, created_at, updated_at)
+            VALUES (:name, :description, :gate_type, :building_id, :is_active, :created_at, :updated_at)
+            ON CONFLICT (name) DO NOTHING
+            """
+        ),
+        default_gate,
+    )
     session.commit()
 
 

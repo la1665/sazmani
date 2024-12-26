@@ -430,10 +430,14 @@ class SimpleTCPClient(basic.LineReceiver):
     async def _handle_camera_connection(self, message):
         print(f"[INFO] Camera connection status: {message['messageBody']}")
         is_connected = message["messageBody"].get("Connection")
+        lpr_id = self.factory.lpr_id
         # Process camera connection status here (e.g., log or update UI)
         try:
             # Broadcast the heartbeat message to all subscribed clients
-            await self._broadcast_to_socketio(event_name="camera_connection", data=is_connected)
+            await self._broadcast_to_socketio(event_name="camera_connection", data={
+                "camera_connection": is_connected,
+                "lpr_id": lpr_id,
+            })
 
             # Optional: Add additional logic for handling heartbeat data, if necessary
         except Exception as e:
