@@ -205,15 +205,16 @@ async def initialize_defaults(db: AsyncSession):
         print("camera object already exists.")
         print("connecting to twisted ...")
         await add_connection(db, lpr_id=db_camera.lpr_id)
-    camera_obj = CameraCreate(
+    else:
+        camera_obj = CameraCreate(
         name=default_camera["name"],
         description=default_camera["description"],
         latitude=default_camera["latitude"],
         longitude=default_camera["longitude"],
         gate_id=default_camera["gate_id"],
         lpr_id=db_lpr.id,
-    )
-    new_camera = await camera_op.create_camera(camera_obj)
-    print(f"Created camera with ID: {new_camera.id}")
-    await add_connection(db, lpr_id=new_camera.lpr_id)
+        )
+        new_camera = await camera_op.create_camera(camera_obj)
+        print(f"Created camera with ID: {new_camera.id}")
+        await add_connection(db, lpr_id=new_camera.lpr_id)
     print("default cameras created!!!")
