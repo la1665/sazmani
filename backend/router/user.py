@@ -90,7 +90,7 @@ async def api_update_user(
     user_id: int,
     user_update: UserUpdate,
     db: AsyncSession = Depends(get_db),
-    current_user: UserInDB=Depends(get_admin_user)
+    current_user: UserInDB=Depends(get_self_or_admin_user)
 ):
     """
     Update an existing user.
@@ -116,7 +116,7 @@ async def api_delete_user(
 async def api_change_password(
     change_request: ChangePasswordRequest,
     db: AsyncSession = Depends(get_db),
-    current_user: UserInDB = Depends(get_admin_user)
+    current_user: UserInDB = Depends(get_self_or_admin_user)
 ):
     """
     Allow users to change their password.
@@ -143,7 +143,7 @@ async def api_upload_profile_image(
     user_id: int,
     profile_image: UploadFile = File(...),
     db: AsyncSession = Depends(get_db),
-    current_user: UserInDB = Depends(get_admin_user)
+    current_user: UserInDB = Depends(get_self_or_admin_user)
 ):
     """
     Upload or update the user's profile image.
