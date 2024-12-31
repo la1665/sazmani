@@ -34,7 +34,7 @@ async def api_get_building(building_id: int, db: AsyncSession = Depends(get_db),
 
 
 @building_router.get("/{building_id}/gates", response_model=GatePagination, status_code=status.HTTP_200_OK, dependencies=[Depends(check_password_changed)])
-async def api_get_bulding_all_gates(building_id: int, page: int = 1, page_size: int = 10, db: AsyncSession = Depends(get_db), current_user: UserInDB = Depends(get_current_active_user)):
+async def api_get_building_all_gates(building_id: int, page: int = 1, page_size: int = 10, db: AsyncSession = Depends(get_db), current_user: UserInDB = Depends(get_current_active_user)):
     building_op = BuildingOperation(db)
     return await building_op.get_building_all_gates(building_id, page, page_size)
 

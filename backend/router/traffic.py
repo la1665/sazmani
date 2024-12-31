@@ -86,7 +86,7 @@ async def get_traffic_data(
         traffic.plate_image_url = None
         if traffic.plate_image_path:
             filename = Path(traffic.plate_image_path).name
-            traffic.plate_image_url = f"{request.base_url}uploads/plate_images/{filename}"
+            traffic.plate_image_url = f"http://127.0.0.1:8000/uploads/plate_images/{filename}"
 
     # Generate export link
     export_link = (
@@ -151,10 +151,10 @@ async def export_traffic_data(
 
         # Write data rows
         for item in all_items:
-            item.plate_image_url = None
-            if item.plate_image_path:
-                filename = Path(item.plate_image_path).name
-                item.plate_image_url = f"http://127.0.0.1:8000/uploads/plate_images/{filename}"
+            # item.plate_image_url = None
+            # if item.plate_image_path:
+            #     filename = Path(item.plate_image_path).name
+            #     item.plate_image_url = f"{request.base_url}uploads/plate_images/{filename}"
 
             ws.append([
                 item.id,
@@ -164,7 +164,7 @@ async def export_traffic_data(
                 item.timestamp.isoformat(),
                 item.camera_id,
                 item.gate_id,
-                item.plate_image_url,
+                item.plate_image_path,
             ])
 
         wb.save(excel_path)

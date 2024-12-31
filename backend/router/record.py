@@ -26,12 +26,11 @@ async def get_records(request: Request, camera_id: int = None, db: AsyncSession 
     """
     record_op = RecordOperation(db)
     records = await record_op.get_records(camera_id=camera_id)
-    if request.base_url == "127.0.0.1:8000":
-        nginx_base_url = f"{request.base_url}".replace("127.0.0.1:8000", "127.0.0.1")  # Adjust for production
-    elif request.base_url == "localhost:8000":
-        nginx_base_url = f"{request.base_url}".replace("localhost:8000", "localhost")  # Adjust for production
-    else:
-        nginx_base_url = f"{request.base_url}".replace("localhost:8000", "localhost")  # Adjust for production
+
+    # Dynamically construct the base URL based on the request
+    proto = request.headers.get("X-Forwarded-Proto", "http")
+    base_url = str(request.base_url).split(":")[1].strip()  # Remove trailing slash if present
+    nginx_base_url = f"{proto}:{base_url}" # Remove trailing slash if present
 
     return [
         {
@@ -39,8 +38,8 @@ async def get_records(request: Request, camera_id: int = None, db: AsyncSession 
             "title": record.title,
             "camera_id": record.camera_id,
             "timestamp": record.timestamp,
-            "video_url": f"http://127.0.0.1/uploads/recordings/{record.title}",
-            # "video_url": f"{request.base_url}{record.video_url}"
+            "video_url": f"{nginx_base_url}/uploads/recordings/{record.title}",
+            "base_url": request.base_url
         }
         for record in records
     ]

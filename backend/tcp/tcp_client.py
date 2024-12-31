@@ -265,7 +265,7 @@ class SimpleTCPClient(basic.LineReceiver):
                 self.file_path = str(RECORDINGS_DIR / filename)
 
                 frame_height, frame_width, _ = frame.shape
-                fps = 30  # Adjust FPS as needed
+                fps = 10  # Adjust FPS as needed
 
                 fourcc = cv2.VideoWriter_fourcc(*'mp4v')
                 self.video_writer = cv2.VideoWriter(self.file_path, fourcc, fps, (frame_width, frame_height))
