@@ -112997,7 +112997,7 @@ EZ(a,b,c){return this.aE2(a,b,c)},
 aE2(a,b,c){var s=0,r=A.C(t.c),q,p=this,o
 var $async$EZ=A.D(function(d,e){if(d===1)return A.z(e,r)
 while(true)switch(s){case 0:s=3
-return A.G(p.a.lT(0,"v1/cameras/"+a+"/settings/",B.c3,A.ae(["page",b,"page_size",c],t.N,t.z)),$async$EZ)
+return A.G(p.a.lT(0,"v1/cameras/"+a+"/settings",B.c3,A.ae(["page",b,"page_size",c],t.N,t.z)),$async$EZ)
 case 3:o=e
 A.au(o)
 q=o
@@ -113010,7 +113010,7 @@ aCj(a,b,c,d,e){var s=0,r=A.C(t.c),q,p=this,o
 var $async$Er=A.D(function(f,g){if(f===1)return A.z(g,r)
 while(true)switch(s){case 0:o=t.N
 s=3
-return A.G(p.a.jq(0,A.ae(["name",c,"description",b,"value",e,"setting_type",d],o,o),"v1/cameras/"+a+"/settings/",B.dj),$async$Er)
+return A.G(p.a.jq(0,A.ae(["name",c,"description",b,"value",e,"setting_type",d],o,o),"v1/cameras/"+a+"/settings",B.dj),$async$Er)
 case 3:q=g
 s=1
 break

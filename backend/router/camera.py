@@ -54,7 +54,12 @@ async def api_change_activation(
     return await camera_op.change_activation_status(camera_id)
 
 @camera_router.get("/{camera_id}/settings", response_model=CameraSettingInstancePagination, status_code=status.HTTP_200_OK, dependencies=[Depends(check_password_changed)])
-async def api_get_camera_all_settings(camera_id: int, page: int = 1, page_size: int = 10, db: AsyncSession = Depends(get_db), current_user: UserInDB = Depends(get_current_active_user)):
+async def api_get_camera_all_settings(
+    camera_id: int,page: int = 1,
+    page_size: int = 10,
+    db: AsyncSession = Depends(get_db),
+    current_user: UserInDB = Depends(get_current_active_user)
+):
     camera_op = CameraOperation(db)
     return await camera_op.get_camera_all_settings(camera_id, page, page_size)
 
