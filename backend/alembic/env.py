@@ -32,9 +32,8 @@ from models.camera import DBCamera
 from models.lpr import DBLpr
 from models.record import DBRecord
 from models.association import camera_lpr_association, traffic_vehicle_association
-# for 'autogenerate' support
-# from myapp import mymodel
-# target_metadata = mymodel.Base.metadata
+
+
 target_metadata = Base.metadata
 
 # other values from the config, defined by the needs of env.py,

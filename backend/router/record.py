@@ -39,7 +39,6 @@ async def get_records(request: Request, camera_id: int = None, db: AsyncSession 
             "camera_id": record.camera_id,
             "timestamp": record.timestamp,
             "video_url": f"{nginx_base_url}/uploads/recordings/{record.title}",
-            "base_url": request.base_url
         }
         for record in records
     ]

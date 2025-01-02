@@ -67,6 +67,11 @@ async def get_traffic_data(
     """
     Retrieve traffic data with pagination.
     """
+    proto = request.headers.get("X-Forwarded-Proto", "http")
+    base_url = str(request.base_url).split(":")[1].strip()  # Remove trailing slash if present
+    nginx_base_url = f"{proto}:{base_url}" # Remove trailing slash if present
+
+
     traffic_op = TrafficOperation(db)
     paginated_result = await traffic_op.get_all_traffics(
         page=page,
@@ -86,11 +91,11 @@ async def get_traffic_data(
         traffic.plate_image_url = None
         if traffic.plate_image_path:
             filename = Path(traffic.plate_image_path).name
-            traffic.plate_image_url = f"http://127.0.0.1:8000/uploads/plate_images/{filename}"
+            traffic.plate_image_url = f"{nginx_base_url}:8000/uploads/plate_images/{filename}"
 
     # Generate export link
     export_link = (
-        f"{request.base_url}v1/traffic/export?"
+        f"{nginx_base_url}v1/traffic/export?"
         f"gate_id={gate_id or ''}&"
         f"camera_id={camera_id or ''}&"
         f"plate_number={plate_number or ''}&"
@@ -118,6 +123,10 @@ async def export_traffic_data(
     """
     Generate a ZIP file containing traffic data and plate images (limited to 1000 records).
     """
+    proto = request.headers.get("X-Forwarded-Proto", "http")
+    base_url = str(request.base_url).split(":")[1].strip()  # Remove trailing slash if present
+    nginx_base_url = f"{proto}:{base_url}" # Remove trailing slash if present
+
     traffic_op = TrafficOperation(db)
 
     # Get all matching data (limited to 1000 records)
@@ -151,10 +160,10 @@ async def export_traffic_data(
 
         # Write data rows
         for item in all_items:
-            # item.plate_image_url = None
-            # if item.plate_image_path:
-            #     filename = Path(item.plate_image_path).name
-            #     item.plate_image_url = f"{request.base_url}uploads/plate_images/{filename}"
+            item.plate_image_url = None
+            if item.plate_image_path:
+                filename = Path(item.plate_image_path).name
+                item.plate_image_url = f"plate_images/{filename}"
 
             ws.append([
                 item.id,
@@ -164,7 +173,7 @@ async def export_traffic_data(
                 item.timestamp.isoformat(),
                 item.camera_id,
                 item.gate_id,
-                item.plate_image_path,
+                item.plate_image_url,
             ])
 
         wb.save(excel_path)
@@ -190,6 +199,6 @@ async def export_traffic_data(
         shutil.copyfile(persistent_zip_path, permanent_zip_path)
 
     # Generate the download URL
-    zip_file_url = f"{request.base_url}{permanent_zip_path}"
+    zip_file_url = f"{nginx_base_url}{permanent_zip_path}"
 
     return {"message": "Traffic data exported successfully.", "zip_file_url": zip_file_url}
