@@ -145,7 +145,8 @@ async def create_default_admin(db: AsyncSession):
             username=settings.ADMIN_USERNAME,
             email=settings.ADMIN_EMAIL,
             password=settings.ADMIN_PASSWORD,
-            user_type=UserType.ADMIN
+            user_type=UserType.ADMIN,
+            cameras=[]
         )
         admin = await user_op.create_user(admin)
         print("Admin user created.")

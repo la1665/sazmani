@@ -4,6 +4,7 @@ from sqlalchemy.orm import relationship
 from enum import Enum
 
 from database.engine import Base
+from models.association import user_camera_association
 
 
 class UserType(Enum):
@@ -35,3 +36,10 @@ class DBUser(Base):
         DateTime, nullable=False, default=func.now(), onupdate=func.now()
     )
     vehicles = relationship("DBVehicle", back_populates="owner", lazy="selectin")
+
+    cameras = relationship(
+        "DBCamera",
+        secondary=user_camera_association,
+        back_populates="users",
+        lazy="selectin"
+    )

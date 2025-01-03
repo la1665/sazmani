@@ -14,6 +14,7 @@ class UserBase(BaseModel):
 
 class UserCreate(UserBase):
     password: str
+    cameras: Optional[List[int]] = None
 
 
 class UserUpdate(BaseModel):
@@ -47,10 +48,12 @@ class UserInDB(UserBase):
     profile_image: Optional[str] = None
     profile_image_url: Optional[str] = None
     password_changed: Optional[bool] = None
+    cameras: Optional[List[int]] = None
     vehicles: List[VehicleSummary] = []
     created_at: datetime
     updated_at: datetime
     is_active: bool
+
 
     class Config:
         from_attributes = True

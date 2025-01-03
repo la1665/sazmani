@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from auth.auth import get_password_hash
 from crud.base import CrudOperation
 from models.user import DBUser, UserType
+from models.camera import DBCamera
 from schema.user import UserUpdate, UserCreate
 from validator import profile_image_validator
 # from utils.minio_utils import upload_profile_image
@@ -36,7 +37,12 @@ class UserOperation(CrudOperation):
         db_user = query.unique().scalar_one_or_none()
         if db_user:
             raise HTTPException(status.HTTP_400_BAD_REQUEST, "username/email already exists.")
-
+        cameras = []
+        if user.cameras:
+            query = await self.db_session.execute(select(DBCamera).filter(DBCamera.id.in_(user.cameras)))
+            cameras = query.scalars().all()
+    
+        # cameras = self.db_session.query(DBCamera).filter(DBCamera.id.in_(user.cameras)).all()
         try:
             new_user = self.db_table(
                 username=user.username,
@@ -44,6 +50,7 @@ class UserOperation(CrudOperation):
                 user_type=user.user_type,
                 hashed_password=hashed_password,
                 password_changed=(user.user_type == UserType.ADMIN),
+                cameras=cameras
             )
             self.db_session.add(new_user)
             await self.db_session.commit()
