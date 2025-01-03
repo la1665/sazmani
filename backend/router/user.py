@@ -43,7 +43,7 @@ async def api_get_user(
     request: Request,
     user_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: UserInDB=Depends(get_admin_user)
+    current_user: UserInDB=Depends(get_self_or_admin_user)
 ):
     """
     Retrieve a user by ID.
