@@ -22,6 +22,13 @@ from utils.middlewwares import check_password_changed
 BASE_UPLOAD_DIR = Path("uploads")
 ZIP_FILE_DIR = BASE_UPLOAD_DIR / "zips"
 ZIP_FILE_DIR.mkdir(parents=True, exist_ok=True)
+
+dict_char_alpha = {
+    'a':'ا', 'b': "ب", 'c': 'ص', 'd':'د', 'e': 'ژ', 'f':'ف', 'g':'گ', 'h':'ه', 'i':'ع','j': 'ج',
+    'k':'ک', 'l':'ل', 'm':'م','n':'ن','o':'ث','q':'ق', 's':'س', 't':'ت','v':'و' , 'w':'ط', 'y':'ی',
+    'p':'پ', 'u':'ش' , 'z':'ز', 'D':'D', 'S':'S',
+}
+
 # Create an APIRouter for user-related routes
 traffic_router = APIRouter(
     prefix="/v1/traffic",
@@ -158,8 +165,13 @@ async def export_traffic_data(
         headers = ["ID", "Plate Number", "OCR Accuracy", "Vision Speed", "Timestamp", "Camera ID", "Gate ID", "Plate Image"]
         ws.append(headers)
 
+        def replace_with_persian_characters(plate_number: str, char_map: dict) -> str:
+            return ''.join(char_map.get(char, char) for char in plate_number)
+
+
         # Write data rows
         for item in all_items:
+            persian_plate_number = replace_with_persian_characters(item.plate_number, dict_char_alpha)
             item.plate_image_url = None
             if item.plate_image_path:
                 filename = Path(item.plate_image_path).name
@@ -167,7 +179,8 @@ async def export_traffic_data(
 
             ws.append([
                 item.id,
-                item.plate_number,
+                persian_plate_number,
+                # item.plate_number,
                 item.ocr_accuracy,
                 item.vision_speed,
                 item.timestamp.isoformat(),
