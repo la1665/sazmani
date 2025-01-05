@@ -102,12 +102,12 @@ def upgrade() -> None:
     op.create_index(op.f('ix_traffic_plate_number'), 'traffic', ['plate_number'], unique=False)
     op.create_table('users',
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
-    sa.Column('username', sa.String(length=255), nullable=False),
-    sa.Column('email', sa.String(length=255), nullable=False),
+    # sa.Column('username', sa.String(length=255), nullable=False),
+    sa.Column('email', sa.String(length=255), nullable=True),
     sa.Column('first_name', sa.String(length=255), nullable=True),
     sa.Column('last_name', sa.String(length=255), nullable=True),
-    sa.Column('national_id', sa.String(length=10), nullable=True),
-    sa.Column('personal_number', sa.String(length=10), nullable=True),
+    sa.Column('national_id', sa.String(length=10), nullable=False),
+    sa.Column('personal_number', sa.String(length=10), nullable=False),
     sa.Column('office', sa.String(length=255), nullable=True),
     sa.Column('phone_number', sa.String(length=11), nullable=True),
     sa.Column('hashed_password', sa.String(length=255), nullable=False),
@@ -118,10 +118,11 @@ def upgrade() -> None:
     sa.Column('created_at', sa.DateTime(), nullable=False),
     sa.Column('updated_at', sa.DateTime(), nullable=False),
     sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('email')
+    sa.UniqueConstraint('email'),
+    sa.UniqueConstraint('national_id'),
     )
     op.create_index(op.f('ix_users_id'), 'users', ['id'], unique=False)
-    op.create_index(op.f('ix_users_username'), 'users', ['username'], unique=True)
+    op.create_index(op.f('ix_users_personal_number'), 'users', ['personal_number'], unique=True)
     op.create_table('gates',
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
     sa.Column('name', sa.String(), nullable=False),

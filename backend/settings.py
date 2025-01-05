@@ -10,9 +10,13 @@ class Settings(BaseSettings):
     SECRET_KEY: Optional[str] = None
     ACCESS_TOKEN_EXPIRE_MINUTES: int=120
     ALGORITHM: Optional[str] = None
-    ADMIN_USERNAME: Optional[str] = None
-    ADMIN_PASSWORD: Optional[str] = None
+    ADMIN_PERSONAL_NUMBER: Optional[str] = None
+    ADMIN_NATIONAL_ID: Optional[str] = None
     ADMIN_EMAIL: Optional[str] = None
+    ADMIN_FIRST_NAME: Optional[str] = None
+    ADMIN_LAST_NAME: Optional[str] = None
+    ADMIN_OFFICE: Optional[str] = None
+    ADMIN_PHONE_NUMBER: Optional[str] = None
     AUTH_TOKEN: Optional[str] = None
     HMAC_SECRET_KEY: Optional[str] = None
     MINIO_ENDPOINT: Optional[str] = None

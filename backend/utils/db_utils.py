@@ -134,18 +134,22 @@ default_camera = {
 }
 
 async def create_default_admin(db: AsyncSession):
-    if settings.ADMIN_USERNAME:
+    if settings.ADMIN_PERSONAL_NUMBER:
         user_op = UserOperation(db)
-        db_admin = await user_op.get_user_username(settings.ADMIN_USERNAME)
+        db_admin = await user_op.get_user_personal_number(settings.ADMIN_PERSONAL_NUMBER)
         if db_admin:
             print("Admin user already exists.")
             return
 
         admin = UserCreate(
-            username=settings.ADMIN_USERNAME,
+            personal_number=settings.ADMIN_PERSONAL_NUMBER,
+            national_id=settings.ADMIN_NATIONAL_ID,
+            first_name=settings.ADMIN_FIRST_NAME,
+            last_name=settings.ADMIN_LAST_NAME,
+            office=settings.ADMIN_OFFICE,
+            phone_number=settings.ADMIN_PHONE_NUMBER,
             email=settings.ADMIN_EMAIL,
-            password=settings.ADMIN_PASSWORD,
-            user_type=UserType.ADMIN
+            user_type=UserType.ADMIN,
         )
         admin = await user_op.create_user(admin)
         print("Admin user created.")

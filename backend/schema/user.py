@@ -6,44 +6,53 @@ from models.user import UserType
 from schema.vehicle import VehicleInDB, VehiclePagination, VehicleSummary
 from schema.pagination import Pagination
 
+
 class UserBase(BaseModel):
-    username: str
-    email: EmailStr
+    personal_number: str
+    national_id: str
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    office: Optional[str] = None
+    phone_number: Optional[str] = None
+    email: Optional[EmailStr] = None
     user_type: UserType = Field(default=UserType.USER)
 
 
 class UserCreate(UserBase):
-    password: str
+    pass
+
+
+class SelfUserUpdate(BaseModel):
+    email: Optional[EmailStr] = None
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    office: Optional[str] = None
+    phone_number: Optional[str] = None
 
 
 class UserUpdate(BaseModel):
     email: Optional[EmailStr] = None
     first_name: Optional[str] = None
     last_name: Optional[str] = None
-    national_id: Optional[str] = None
-    personal_number: Optional[str] = None
     office: Optional[str] = None
     phone_number: Optional[str] = None
     user_type: Optional[UserType] = None
     is_active: Optional[bool] = None
-    hashed_password: Optional[str] = None
     password_changed: Optional[bool] = None
-
 
 
 class ChangePasswordRequest(BaseModel):
     current_password: str
+    current_password_retry: str
     new_password: str
+
+class PasswordUpdate(BaseModel):
+    hashed_password: Optional[str] = None
+    password_changed: Optional[bool] = None
 
 
 class UserInDB(UserBase):
     id: int
-    first_name: Optional[str] = None
-    last_name: Optional[str] = None
-    id_number: Optional[str] = None
-    personal_number: Optional[str] = None
-    phone_number: Optional[str] = None
-    office: Optional[str] = None
     profile_image: Optional[str] = None
     profile_image_url: Optional[str] = None
     password_changed: Optional[bool] = None

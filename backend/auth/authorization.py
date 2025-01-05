@@ -20,14 +20,14 @@ async def get_current_user(
             payload = jwt.decode(
                 token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
             )
-            username = payload.get("sub")
-            if username is None:
+            personal_number = payload.get("sub")
+            if personal_number is None:
                 raise HTTPException(status.HTTP_401_UNAUTHORIZED,
                     detail="Authorization Error: Could not validate credentials",
                     headers={"WWW-Authenticate": "Bearer"})
-            token_data = TokenData(username=username)
+            token_data = TokenData(personal_number=personal_number)
             user_op = UserOperation(db)
-            current_user = await user_op.get_user_username(username=token_data.username)
+            current_user = await user_op.get_user_personal_number(personal_number=token_data.personal_number)
             if current_user is None:
                 raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Authorization Error: Could not validate credentials",
                     headers={"WWW-Authenticate": "Bearer"})
@@ -103,7 +103,7 @@ async def get_self_or_admin_or_staff_user(
     # If none of the conditions are met, deny access
     raise HTTPException(
         status_code=status.HTTP_403_FORBIDDEN,
-        detail="Permission denied: You cannot update this user.",
+        detail="Permission denied: You cannot view this resource.",
     )
 
 
