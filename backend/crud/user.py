@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from auth.auth import get_password_hash
 from crud.base import CrudOperation
 from models.user import DBUser, UserType
-from models.camera import DBCamera
+from models.gate import DBGate
 from schema.user import UserUpdate, UserCreate
 from validator import profile_image_validator
 # from utils.minio_utils import upload_profile_image
@@ -28,21 +28,22 @@ class UserOperation(CrudOperation):
         user = query.unique().scalar_one_or_none()
         return user
 
-    async def create_user(self, user:UserCreate):
+    async def create_user(self, user: UserCreate):
         hashed_password = get_password_hash(user.password)
         query = await self.db_session.execute(
             select(self.db_table).where(
                 or_(self.db_table.username == user.username, self.db_table.email == user.email)
-            ))
+            )
+        )
         db_user = query.unique().scalar_one_or_none()
         if db_user:
             raise HTTPException(status.HTTP_400_BAD_REQUEST, "username/email already exists.")
-        cameras = []
-        if user.cameras:
-            query = await self.db_session.execute(select(DBCamera).filter(DBCamera.id.in_(user.cameras)))
-            cameras = query.scalars().all()
-    
-        # cameras = self.db_session.query(DBCamera).filter(DBCamera.id.in_(user.cameras)).all()
+        
+        gates = []
+        if user.gates:
+            query = await self.db_session.execute(select(DBGate).filter(DBGate.id.in_(user.gates)))
+            gates = query.scalars().all()
+        
         try:
             new_user = self.db_table(
                 username=user.username,
@@ -50,7 +51,7 @@ class UserOperation(CrudOperation):
                 user_type=user.user_type,
                 hashed_password=hashed_password,
                 password_changed=(user.user_type == UserType.ADMIN),
-                cameras=cameras
+                gates=gates
             )
             self.db_session.add(new_user)
             await self.db_session.commit()
@@ -61,7 +62,6 @@ class UserOperation(CrudOperation):
             raise HTTPException(status.HTTP_400_BAD_REQUEST, f"{error}: Failed to create user.")
         finally:
             await self.db_session.close()
-
 
     async def update_user(self, user_id: int, user_update: UserUpdate):
         db_user = await self.get_one_object_id(user_id)

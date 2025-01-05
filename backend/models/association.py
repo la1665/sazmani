@@ -19,9 +19,16 @@ traffic_vehicle_association = Table(
 )
 
 
-user_camera_association = Table(
-    'user_camera_association',
+# user_camera_association = Table(
+#     'user_camera_association',
+#     Base.metadata,
+#     Column('camera_id', Integer, ForeignKey('cameras.id', ondelete="CASCADE"), primary_key=True),
+#     Column('user_id', Integer, ForeignKey('users.id', ondelete="CASCADE"), primary_key=True)
+# )
+
+user_gate_association = Table(
+    'user_gate_association',
     Base.metadata,
-    Column('camera_id', Integer, ForeignKey('cameras.id', ondelete="CASCADE"), primary_key=True),
+    Column('gate_id', Integer, ForeignKey('gates.id', ondelete="CASCADE"), primary_key=True),
     Column('user_id', Integer, ForeignKey('users.id', ondelete="CASCADE"), primary_key=True)
 )

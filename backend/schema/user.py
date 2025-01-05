@@ -4,7 +4,7 @@ from typing import Optional, List
 
 from models.user import UserType
 from schema.vehicle import VehicleInDB, VehiclePagination, VehicleSummary
-from schema.camera import CameraInDB
+from schema.gate import GateInDB
 from schema.pagination import Pagination
 
 class UserBase(BaseModel):
@@ -15,7 +15,7 @@ class UserBase(BaseModel):
 
 class UserCreate(UserBase):
     password: str
-    cameras: Optional[List[int]] = None
+    gates: Optional[List[int]] = None
 
 
 class UserUpdate(BaseModel):
@@ -49,7 +49,7 @@ class UserInDB(UserBase):
     profile_image: Optional[str] = None
     profile_image_url: Optional[str] = None
     password_changed: Optional[bool] = None
-    cameras: Optional[List[CameraInDB]] = []
+    gates: Optional[List[GateInDB]] = []
     vehicles: List[VehicleSummary] = []
     created_at: datetime
     updated_at: datetime
