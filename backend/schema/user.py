@@ -43,8 +43,8 @@ class UserUpdate(BaseModel):
 
 class ChangePasswordRequest(BaseModel):
     current_password: str
-    current_password_retry: str
     new_password: str
+    new_password_confirm: str
 
 class PasswordUpdate(BaseModel):
     hashed_password: Optional[str] = None

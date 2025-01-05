@@ -135,8 +135,8 @@ async def api_change_password(
     target_user = await user_op.get_one_object_id(user_id)
 
     # Verify current password is same
-    if change_request.current_password != change_request.current_password_retry:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Password and confirm password are not the same")
+    if change_request.new_password != change_request.new_password_confirm:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="New password confirmation error")
 
     # Verify current password
     if not verify_password(change_request.current_password, target_user.hashed_password):
