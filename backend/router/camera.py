@@ -1,8 +1,9 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, status, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from auth.authorization import get_current_active_user, get_admin_user, get_admin_or_staff_user
+from auth.authorization import get_current_active_user, get_admin_user, get_admin_or_staff_user, get_admin_staff_viewer_user
 from database.engine import get_db
+from models.user import UserType
 from schema.user import UserInDB
 from schema.camera import CameraCreate, CameraUpdate, CameraInDB, CameraPagination
 from schema.camera_setting import CameraSettingInstanceUpdate, CameraSettingInstanceCreate, CameraSettingInstanceInDB, CameraSettingInstancePagination
@@ -22,13 +23,32 @@ async def api_create_camera(camera: CameraCreate, db: AsyncSession = Depends(get
     return await camera_op.create_camera(camera)
 
 @camera_router.get("/", response_model=CameraPagination, status_code=status.HTTP_200_OK, dependencies=[Depends(check_password_changed)])
-async def api_get_all_cameras(page: int = 1, page_size: int = 10, db: AsyncSession = Depends(get_db), current_user: UserInDB = Depends(get_current_active_user)):
+async def api_get_all_cameras(
+    page: int = 1,
+    page_size: int = 10,
+    db: AsyncSession = Depends(get_db),
+    current_user: UserInDB = Depends(get_current_active_user),
+):
     camera_op = CameraOperation(db)
-    return await camera_op.get_all_objects(page, page_size)
+
+    if current_user.user_type in [UserType.ADMIN, UserType.STAFF]:
+        # Admins and staff get all cameras
+        result = await camera_op.get_all_objects(page, page_size)
+    elif current_user.user_type == UserType.VIEWER:
+        # Viewers get cameras associated with their accessible gates
+        accessible_gate_ids = [gate.id for gate in current_user.gates]
+        result = await camera_op.get_objects_by_gate_ids(accessible_gate_ids, page, page_size)
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Permission denied: Unable to retrieve camera list.",
+        )
+
+    return result
 
 
 @camera_router.get("/{camera_id}", response_model=CameraInDB, status_code=status.HTTP_200_OK, dependencies=[Depends(check_password_changed)])
-async def api_get_camera(camera_id: int, db: AsyncSession = Depends(get_db), current_user: UserInDB = Depends(get_current_active_user)):
+async def api_get_camera(camera_id: int, db: AsyncSession = Depends(get_db), current_user: UserInDB = Depends(get_admin_staff_viewer_user)):
     camera_op = CameraOperation(db)
     return await camera_op.get_one_object_id(camera_id)
 

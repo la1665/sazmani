@@ -10,6 +10,7 @@ from typing import Optional, List
 from auth.auth import get_password_hash
 from crud.base import CrudOperation
 from models.user import DBUser, UserType
+from models.gate import DBGate
 from schema.user import UserUpdate, UserCreate, PasswordUpdate, SelfUserUpdate
 from validator import profile_image_validator
 # from utils.minio_utils import upload_profile_image
@@ -39,6 +40,13 @@ class UserOperation(CrudOperation):
         if db_user:
             raise HTTPException(status.HTTP_400_BAD_REQUEST, "user with this cridentials already exists.")
 
+        db_gates = []
+        if user.gate_ids:
+            gates_query = await self.db_session.execute(
+                select(DBGate).where(DBGate.id.in_(user.gate_ids))
+            )
+            db_gates = gates_query.scalars().all()
+
         try:
             new_user = self.db_table(
                 personal_number=user.personal_number,
@@ -50,6 +58,7 @@ class UserOperation(CrudOperation):
                 email=user.email,
                 user_type=user.user_type,
                 hashed_password=hashed_password,
+                gates=db_gates,
                 password_changed=(user.user_type == UserType.ADMIN),
             )
 

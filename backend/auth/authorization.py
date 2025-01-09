@@ -1,4 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
+from sqlalchemy.orm import selectinload
 from fastapi import Depends, HTTPException, status
 from jose import jwt, JWTError
 
@@ -8,6 +10,7 @@ from auth.auth import oauth2_scheme
 from schema.auth import TokenData
 from schema.user import UserInDB
 from models.user import DBUser, UserType
+from models.camera import DBCamera
 from crud.user import UserOperation
 
 
@@ -61,10 +64,41 @@ async def get_admin_or_staff_user(current_user: DBUser = Depends(get_current_act
     return current_user
 
 
-async def get_admin_staff_viewer_user(current_user: UserInDB = Depends(get_current_active_user)):
+async def get_admin_staff_viewer_user(
+    db: AsyncSession = Depends(get_db),
+    current_user: UserInDB = Depends(get_current_active_user),
+    camera_id: int = None,
+):
+    # Check if the user type is valid
     if current_user.user_type not in [UserType.ADMIN, UserType.STAFF, UserType.VIEWER]:
-        raise HTTPException(status.HTTP_403_FORBIDDEN,
-            {"Permission denied":"Not accessible for this user type"})
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN,
+            {"Permission denied": "Not accessible for this user type"},
+        )
+
+    # If the user is a viewer, check gate access
+    if current_user.user_type == UserType.VIEWER and camera_id is not None:
+        # Fetch the camera and its associated gate
+        query = await db.execute(
+            select(DBCamera)
+            .where(DBCamera.id == camera_id)
+            .options(selectinload(DBCamera.gate))  # Load the associated gate
+        )
+        camera = query.scalars().first()
+
+        if not camera:
+            raise HTTPException(
+                status.HTTP_404_NOT_FOUND,
+                {"Error": "Camera not found"},
+            )
+
+        # Check if the user's gates include the gate associated with the camera
+        if camera.gate.id not in [gate.id for gate in current_user.gates]:
+            raise HTTPException(
+                status.HTTP_403_FORBIDDEN,
+                {"Permission denied": "Access to this camera is denied"},
+            )
+
     return current_user
 
 

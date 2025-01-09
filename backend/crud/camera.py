@@ -20,6 +20,41 @@ class CameraOperation(CrudOperation):
     def __init__(self, db_session: AsyncSession) -> None:
         super().__init__(db_session, DBCamera)
 
+    async def get_objects_by_gate_ids(self, gate_ids: list[int], page: int = 1, page_size: int = 10):
+        """
+        Retrieve cameras associated with the given gate IDs, with pagination.
+        """
+        # Count total records
+        total_query = await self.db_session.execute(
+            select(func.count(self.db_table.id)).where(self.db_table.gate_id.in_(gate_ids))
+        )
+        total_records = total_query.scalar_one()
+
+        # Calculate total number of pages
+        total_pages = math.ceil(total_records / page_size) if page_size else 1
+
+        # Calculate offset
+        offset = (page - 1) * page_size
+
+        # Fetch the records
+        query = await self.db_session.execute(
+            select(self.db_table)
+            .where(self.db_table.gate_id.in_(gate_ids))
+            .order_by(self.db_table.id)
+            .offset(offset)
+            .limit(page_size)
+        )
+        objects = query.unique().scalars().all()
+
+        return {
+            "items": objects,
+            "total_records": total_records,
+            "total_pages": total_pages,
+            "current_page": page,
+            "page_size": page_size,
+        }
+
+
     async def create_camera(self, camera: CameraCreate):
         db_camera = await self.get_one_object_name(camera.name)
         if db_camera:

@@ -4,15 +4,12 @@ from sqlalchemy.orm import relationship
 from enum import Enum
 
 from database.engine import Base
-
-
+from models.association import user_gate_access
 
 class GateType(Enum):
     ENTRANCE = 0
     EXIT = 1
     BOTH = 2
-
-
 
 
 class DBGate(Base):
@@ -29,4 +26,4 @@ class DBGate(Base):
     building_id = Column(Integer, ForeignKey('buildings.id'), nullable=False)
     building = relationship('DBBuilding', back_populates='gates')
     cameras = relationship("DBCamera", back_populates="gate", cascade="all, delete-orphan", lazy="selectin")
-    # lprs = relationship("DBLpr", back_populates="gate", cascade="all, delete-orphan", lazy="selectin")
+    users = relationship("DBUser", secondary=user_gate_access, back_populates="gates")

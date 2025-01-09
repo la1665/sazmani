@@ -17,3 +17,10 @@ traffic_vehicle_association = Table(
     Column("traffic_id", Integer, ForeignKey("traffic.id"), primary_key=True),
     Column("vehicle_id", Integer, ForeignKey("vehicles.id"), primary_key=True),
 )
+
+user_gate_access = Table(
+    'user_gate_access',
+    Base.metadata,
+    Column('user_id', Integer, ForeignKey('users.id', ondelete="CASCADE"), primary_key=True),
+    Column('gate_id', Integer, ForeignKey('gates.id', ondelete="CASCADE"), primary_key=True),
+)

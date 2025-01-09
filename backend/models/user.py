@@ -4,7 +4,7 @@ from sqlalchemy.orm import relationship
 from enum import Enum
 
 from database.engine import Base
-
+from models.association import user_gate_access
 
 class UserType(Enum):
     ADMIN = "admin"
@@ -34,4 +34,6 @@ class DBUser(Base):
     updated_at = Column(
         DateTime, nullable=False, default=func.now(), onupdate=func.now()
     )
+
     vehicles = relationship("DBVehicle", back_populates="owner", lazy="selectin")
+    gates = relationship("DBGate", secondary=user_gate_access, back_populates="users", lazy="selectin")
