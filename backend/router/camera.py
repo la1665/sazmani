@@ -78,7 +78,7 @@ async def api_get_camera_all_settings(
     camera_id: int,page: int = 1,
     page_size: int = 10,
     db: AsyncSession = Depends(get_db),
-    current_user: UserInDB = Depends(get_current_active_user)
+    current_user: UserInDB = Depends(get_admin_or_staff_user)
 ):
     camera_op = CameraOperation(db)
     return await camera_op.get_camera_all_settings(camera_id, page, page_size)

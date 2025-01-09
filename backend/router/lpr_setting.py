@@ -23,13 +23,13 @@ async def api_create_setting(setting: LprSettingCreate, db: AsyncSession = Depen
     return await setting_op.create_setting(setting)
 
 @lpr_setting_router.get("/", response_model=LprSettingPagination, status_code=status.HTTP_200_OK, dependencies=[Depends(check_password_changed)])
-async def api_get_settings(page: int = 1, page_size: int = 10, db: AsyncSession = Depends(get_db), current_user: UserInDB=Depends(get_current_active_user)):
+async def api_get_settings(page: int = 1, page_size: int = 10, db: AsyncSession = Depends(get_db), current_user: UserInDB=Depends(get_admin_or_staff_user)):
     setting_op = LprSettingOperation(db)
     return await setting_op.get_all_objects(page, page_size)
 
 
 @lpr_setting_router.get("/{setting_id}", response_model=LprSettingInDB, status_code=status.HTTP_200_OK, dependencies=[Depends(check_password_changed)])
-async def api_get_setting(setting_id: int, db: AsyncSession = Depends(get_db), current_user: UserInDB=Depends(get_current_active_user)):
+async def api_get_setting(setting_id: int, db: AsyncSession = Depends(get_db), current_user: UserInDB=Depends(get_admin_or_staff_user)):
     setting_op = LprSettingOperation(db)
     return await setting_op.get_one_object_id(setting_id)
 

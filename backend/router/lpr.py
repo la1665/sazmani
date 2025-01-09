@@ -36,7 +36,7 @@ async def api_get_all_lprs(
     page: int=1,
     page_size: int=10,
     db: AsyncSession=Depends(get_db),
-    current_user:UserInDB=Depends(get_current_active_user)
+    current_user:UserInDB=Depends(get_admin_or_staff_user)
 ):
     lpr_op = LprOperation(db)
     return await lpr_op.get_all_objects(page, page_size)
@@ -45,14 +45,14 @@ async def api_get_all_lprs(
 async def api_get_lpr(
     lpr_id: int,
     db: AsyncSession=Depends(get_db),
-    current_user:UserInDB=Depends(get_current_active_user)
+    current_user:UserInDB=Depends(get_admin_or_staff_user)
 ):
     lpr_op = LprOperation(db)
     return await lpr_op.get_one_object_id(lpr_id)
 
 
 @lpr_router.get("/{lpr_id}/cameras", response_model=CameraPagination, status_code=status.HTTP_200_OK, dependencies=[Depends(check_password_changed)])
-async def api_get_lpr_all_cameras(lpr_id: int, page: int = 1, page_size: int = 10, db: AsyncSession = Depends(get_db), current_user: UserInDB = Depends(get_current_active_user)):
+async def api_get_lpr_all_cameras(lpr_id: int, page: int = 1, page_size: int = 10, db: AsyncSession = Depends(get_db), current_user: UserInDB = Depends(get_admin_or_staff_user)):
     lpr_op = LprOperation(db)
     return await lpr_op.get_lpr_all_cameras(lpr_id, page, page_size)
 
@@ -96,7 +96,7 @@ async def api_change_activation(
         return status
 
 @lpr_router.get("/{lpr_id}/settings", response_model=LprSettingInstancePagination, status_code=status.HTTP_200_OK, dependencies=[Depends(check_password_changed)])
-async def api_get_lpr_all_settings(lpr_id: int, page: int = 1, page_size: int = 10, db: AsyncSession = Depends(get_db), current_user: UserInDB = Depends(get_current_active_user)):
+async def api_get_lpr_all_settings(lpr_id: int, page: int = 1, page_size: int = 10, db: AsyncSession = Depends(get_db), current_user: UserInDB = Depends(get_admin_or_staff_user)):
     lpr_op = LprOperation(db)
     return await lpr_op.get_lpr_all_settings(lpr_id, page, page_size)
 

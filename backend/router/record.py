@@ -7,10 +7,12 @@ from database.engine import async_session
 from pathlib import Path
 
 from shared_resources import connections
+from auth.authorization import get_admin_or_staff_user
 from models.camera import DBCamera
 from database.engine import get_db
 from models.record import DBRecord
 from crud.record import RecordOperation
+from schema.user import UserInDB
 
 
 # Directory for recordings
@@ -20,7 +22,12 @@ RECORDINGS_DIR = BASE_UPLOAD_DIR / "recordings"
 record_router = APIRouter()
 
 @record_router.get("/records/")
-async def get_records(request: Request, camera_id: int = None, db: AsyncSession = Depends(get_db)):
+async def get_records(
+    request: Request,
+    camera_id: int = None,
+    db: AsyncSession = Depends(get_db),
+    current_user: UserInDB=Depends(get_admin_or_staff_user),
+):
     """
     Get recorded video information.
     """
@@ -46,7 +53,11 @@ async def get_records(request: Request, camera_id: int = None, db: AsyncSession 
 
 # Endpoint to serve video files for download
 @record_router.get("/records/download/{record_id}")
-async def download_record(record_id: int, db: AsyncSession = Depends(get_db)):
+async def download_record(
+    record_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: UserInDB=Depends(get_admin_or_staff_user),
+):
     """
     Download a recorded video by its ID.
     """
@@ -73,7 +84,11 @@ async def download_record(record_id: int, db: AsyncSession = Depends(get_db)):
 
 
 @record_router.post("/start_recording", status_code=200)
-async def start_recording(camera_id: int, duration: int = 60):
+async def start_recording(
+    camera_id: int,
+    duration: int = 60,
+    current_user: UserInDB=Depends(get_admin_or_staff_user),
+):
     """
     API endpoint to start recording.
     """

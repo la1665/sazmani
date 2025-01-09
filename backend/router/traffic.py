@@ -40,7 +40,7 @@ traffic_router = APIRouter(
 async def api_create_traffic(
     traffic: TrafficCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: UserInDB=Depends(get_admin_user)
+    current_user: UserInDB=Depends(get_admin_or_staff_user)
 ):
     """
     Create a new vehicle.
@@ -69,7 +69,7 @@ async def get_traffic_data(
     start_date: datetime = Query(None, description="Filter records from this date (ISO format)"),
     end_date: datetime = Query(None, description="Filter records up to this date (ISO format)"),
     db: AsyncSession = Depends(get_db),
-    current_user: UserInDB = Depends(get_admin_user),
+    current_user: UserInDB = Depends(get_admin_or_staff_user),
 ):
     """
     Retrieve traffic data with pagination.
@@ -125,7 +125,7 @@ async def export_traffic_data(
     start_date: datetime = Query(None, description="Filter records from this date (ISO format)"),
     end_date: datetime = Query(None, description="Filter records up to this date (ISO format)"),
     db: AsyncSession = Depends(get_db),
-    current_user: UserInDB = Depends(get_admin_user),
+    current_user: UserInDB = Depends(get_admin_or_staff_user),
 ):
     """
     Generate a ZIP file containing traffic data and plate images (limited to 1000 records).

@@ -21,7 +21,7 @@ vehicle_router = APIRouter(
 async def api_create_vehicle(
     vehicle: VehicleCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: UserInDB=Depends(get_self_or_admin_user)
+    current_user: UserInDB=Depends(get_self_or_admin_or_staff_user)
 ):
     """
     Create a new vehicle.
