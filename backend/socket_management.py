@@ -1,11 +1,14 @@
-import time
 import socketio
 import logging
 import asyncio
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
+from jose import jwt, JWTError
 
+# from auth.auth import jwt, JWTError
+from settings import settings
 from database.engine import async_session
+from models.user import DBUser, UserType
 from models.camera import DBCamera
 from shared_resources import connections
 
@@ -30,26 +33,68 @@ request_map = {
 
 sid_role_map = {}  # Maps SID to roles (e.g., {"sid1": "admin", "sid2": "operator"})
 
+async def validate_and_get_user(token: str):
+    """Validates a JWT token and retrieves the user from the database."""
+    try:
+        if not settings.SECRET_KEY or not settings.ALGORITHM:
+            raise ValueError("SECRET_KEY and ALGORITHM must be set in the settings.")
+
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        personal_number = payload.get("sub")
+        if not personal_number:
+            raise ValueError("Invalid token: Missing 'sub'")
+        async with async_session() as session:
+            query = await session.execute(
+                select(DBUser).where(DBUser.personal_number == personal_number).options(selectinload(DBUser.gates))
+            )
+            user = query.scalar_one_or_none()
+            if not user:
+                raise ValueError("User not found")
+            return user
+    except JWTError:
+        raise ValueError("Invalid token")
+
+
 @sio.event
 async def connect(sid, environ):
     """
     Event triggered when a client connects to the WebSocket.
     """
-    print(f"New client connected: {sid}")
-    await sio.emit("connection_ack", {"message": "Connected"}, to=sid)
-    logger.info(f"Client connected: {sid}")
-    request_map["live"][sid] = set()
-    request_map["plates_data"][sid] = set()
+    token = environ.get("HTTP_AUTHORIZATION")
+    if not token:
+        logger.error(f"Connection rejected for SID {sid}: Missing token")
+        await sio.disconnect(sid)
+        return
+
+    try:
+        # Validate and fetch user
+        user = await validate_and_get_user(token.replace("Bearer ", ""))
+        if user.user_type not in [UserType.ADMIN, UserType.STAFF, UserType.VIEWER]:
+            logger.error(f"Unauthorized role for SID {sid}: {user.user_type}")
+            await sio.disconnect(sid)
+            return
+
+        # Map SID to the user
+        sid_role_map[sid] = user
+        logger.info(f"Client {sid} connected with role {user.user_type}")
+        await sio.emit("connection_ack", {"message": "Connected"}, to=sid)
+
+    except ValueError as e:
+        logger.error(f"Connection error for SID {sid}: {e}")
+        await sio.emit("error", {"message": str(e)}, to=sid)
+        await sio.disconnect(sid)
+
 
 @sio.event
 async def disconnect(sid):
     """
     Event triggered when a client disconnects from the WebSocket.
     """
-    logger.info(f"Client disconnected: {sid}")
     sid_role_map.pop(sid, None)
-    request_map["live"].pop(sid, None)
-    request_map["plates_data"].pop(sid, None)
+    for key in request_map:
+        request_map[key].pop(sid, None)
+    logger.info(f"Client {sid} disconnected")
+
 
 @sio.event
 async def subscribe(sid, data):
@@ -59,12 +104,36 @@ async def subscribe(sid, data):
     global connections
     print(f"Received subscription request from {sid}: {data}")
 
+    user = sid_role_map.get(sid)
+    if not user:
+        await sio.emit("error", {"message": "Unauthorized"}, to=sid)
+        return
+
     request_type = data.get("request_type")
     camera_id = data.get("camera_id")
 
     if request_type not in request_map:
         await sio.emit("error", {"message": "Invalid request_type"}, to=sid)
         return
+
+    if not camera_id and request_type in ["live", "plates_data"]:
+        await sio.emit("error", {"message": "camera_id is required for this request_type"}, to=sid)
+        return
+
+    # Check access for Viewer role
+    if user.user_type == UserType.VIEWER:
+        async with async_session() as session:
+            query = await session.execute(
+                select(DBCamera).where(DBCamera.id == int(camera_id)).options(selectinload(DBCamera.gate))
+            )
+            camera = query.scalar_one_or_none()
+            if not camera:
+                await sio.emit("error", {"message": "Camera not found"}, to=sid)
+                return
+            if camera.gate.id not in [gate.id for gate in user.gates]:
+                await sio.emit("error", {"message": "Access denied to this camera"}, to=sid)
+                return
+
 
     if request_type == "resources":
         request_map["resources"].add(sid)
@@ -84,9 +153,9 @@ async def subscribe(sid, data):
         await sio.emit('request_acknowledged', {"status": "subscribed", "data_type": "camera_connection"}, to=sid)
         return
 
-    if not camera_id:
-        await sio.emit("error", {"message": "camera_id is required"}, to=sid)
-        return
+    # if not camera_id:
+    #     await sio.emit("error", {"message": "camera_id is required"}, to=sid)
+    #     return
 
     request_map[request_type].setdefault(sid, set()).add(camera_id)
 
@@ -133,7 +202,7 @@ async def unsubscribe(sid, data):
             del request_map[request_type][sid]
         logger.info(f"Client {sid} unsubscribed from {request_type} for camera_id {camera_id}")
         await sio.emit("request_acknowledged", {"status": "unsubscribed", "data_type": request_type, "camera_id": camera_id}, to=sid)
-
+        return
 
 async def _handle_camera_subscription(sid, camera_id, request_type, data):
     """Handle subscription to camera-specific events."""
