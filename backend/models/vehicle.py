@@ -11,15 +11,12 @@ class DBVehicle(Base):
     vehicle_class = Column(String, nullable=True)
     vehicle_type = Column(String, nullable=True)
     vehicle_color = Column(String, nullable=True)
+    car_image = Column(String, nullable=True)
     is_active = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime, nullable=False, default=func.now())
     updated_at = Column(
         DateTime, nullable=False, default=func.now(), onupdate=func.now()
     )
+
     owner_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     owner = relationship("DBUser", back_populates="vehicles")
-    # traffic_events = relationship(
-    #     "DBTraffic",
-    #     secondary="traffic_vehicle_association",
-    #     back_populates="vehicles"
-    # )

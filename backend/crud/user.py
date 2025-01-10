@@ -12,7 +12,7 @@ from crud.base import CrudOperation
 from models.user import DBUser, UserType
 from models.gate import DBGate
 from schema.user import UserUpdate, UserCreate, PasswordUpdate, SelfUserUpdate
-from validator import profile_image_validator
+from validator import image_validator
 # from utils.minio_utils import upload_profile_image
 
 
@@ -132,9 +132,9 @@ class UserOperation(CrudOperation):
         user = await self.get_one_object_id(user_id)
 
         # Validate the image
-        profile_image_validator.validate_image_extension(profile_image.filename)
-        profile_image_validator.validate_image_content_type(profile_image.content_type)
-        profile_image_validator.validate_image_size(profile_image)
+        image_validator.validate_image_extension(profile_image.filename)
+        image_validator.validate_image_content_type(profile_image.content_type)
+        image_validator.validate_image_size(profile_image)
 
         # Generate a unique filename
         unique_filename = f"{user.personal_number}_{user.id}_{profile_image.filename}"

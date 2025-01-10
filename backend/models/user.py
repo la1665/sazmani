@@ -35,5 +35,5 @@ class DBUser(Base):
         DateTime, nullable=False, default=func.now(), onupdate=func.now()
     )
 
-    vehicles = relationship("DBVehicle", back_populates="owner", lazy="selectin")
+    vehicles = relationship("DBVehicle", back_populates="owner", cascade="all, delete-orphan", lazy="selectin")
     gates = relationship("DBGate", secondary=user_gate_access, back_populates="users", lazy="selectin")

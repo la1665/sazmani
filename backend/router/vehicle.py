@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, status, HTTPException
+from pathlib import Path
+from fastapi import APIRouter, Depends, Request, HTTPException, UploadFile, File, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from settings import settings
@@ -33,6 +34,7 @@ async def api_create_vehicle(
 
 @vehicle_router.get("/{plate_number}", response_model=VehicleInDB, status_code=status.HTTP_200_OK, dependencies=[Depends(check_password_changed)])
 async def api_get_vehicle(
+    request: Request,
     plate_number: str,
     db: AsyncSession = Depends(get_db),
     current_user: UserInDB=Depends(get_self_or_admin_or_staff_user)
@@ -41,11 +43,20 @@ async def api_get_vehicle(
     Retrieve a vehicle by plate.
     """
     vehicle_op = VehicleOperation(db)
-    return await vehicle_op.get_one_vehcile_plate(plate_number)
+    vehicle = await vehicle_op.get_one_vehcile_plate(plate_number)
+    if not vehicle:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Vehicle not found!")
+
+    if vehicle.car_image:
+        filename = Path(vehicle.car_image).name
+        vehicle.car_image_url = f"{request.base_url}uploads/car_images/{filename}"
+
+    return vehicle
 
 
 @vehicle_router.get("/",response_model=VehiclePagination, status_code=status.HTTP_200_OK, dependencies=[Depends(check_password_changed)])
 async def api_get_all_vehicles(
+    request: Request,
     page: int = 1,
     page_size: int = 10,
     db: AsyncSession = Depends(get_db),
@@ -56,8 +67,21 @@ async def api_get_all_vehicles(
     """
     vehicle_op = VehicleOperation(db)
     result = await vehicle_op.get_all_objects(page, page_size)
+    for vehicle in result["items"]:
+        if vehicle.car_image:
+            filename = Path(vehicle.car_image).name
+            vehicle.car_image_url = f"{request.base_url}uploads/car_images/{filename}"
     return result
 
+
+@vehicle_router.patch("/{vehicle_id}", status_code=status.HTTP_200_OK, dependencies=[Depends(check_password_changed)])
+async def api_change_activation(
+    vehicle_id: int,
+    db:AsyncSession=Depends(get_db),
+    current_user:UserInDB=Depends(get_admin_or_staff_user)
+):
+    vehicle_op = VehicleOperation(db)
+    return await vehicle_op.change_activation_status(vehicle_id)
 
 
 @vehicle_router.delete("/{vehicle_id}", status_code=status.HTTP_200_OK, dependencies=[Depends(check_password_changed)])
@@ -71,3 +95,17 @@ async def api_delete_vehicle(
     """
     vehicle_op = VehicleOperation(db)
     return await vehicle_op.delete_object(vehicle_id)
+
+
+@vehicle_router.post("/{vehicle_id}/car-image", response_model=VehicleInDB, dependencies=[Depends(check_password_changed)])
+async def api_upload_car_image(
+    vehicle_id: int,
+    car_image: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+    current_user: UserInDB = Depends(get_self_user_only)
+):
+    """
+    Upload or update the car's image.
+    """
+    vehicle_op = VehicleOperation(db)
+    return await vehicle_op.upload_vehicle_image(vehicle_id, car_image)

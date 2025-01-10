@@ -111,8 +111,8 @@ default_lpr_settings = [
 default_lpr = {
     "name": "ماژول ۱",
     "description": "پلاک خوان دوربین گیت۱ برای ورودی/خروجی",
-    "ip": "185.81.99.23",
-    # "ip": "192.168.65.254",
+    # "ip": "185.81.99.23",
+    "ip": "192.168.65.254",
     "port": 45,
     "auth_token": "dBzsEzYuBy6wgiGlI4UUXJPLp1OoS0Cc2YgyCFOCh2U7pvH16ucL1334OjCmeWFJ",
     "latitude": "98.0.0",

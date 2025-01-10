@@ -4,8 +4,14 @@ from typing import Optional, List
 
 from models.user import UserType
 from schema.gate import GateBase
-from schema.vehicle import VehicleInDB, VehiclePagination, VehicleSummary
+from schema.vehicle import VehicleInDB, VehiclePagination
 from schema.pagination import Pagination
+
+
+class VehicleSummary(BaseModel):
+    id: int
+    plate_number: str
+    is_active: bool
 
 
 class UserBase(BaseModel):

@@ -73,7 +73,8 @@ class CrudOperation:
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"{error}: Could not change activation status",
             )
-
+        finally:
+            await self.db_session.close()
 
     async def delete_object(self, object_id: int):
         db_object = await self.get_one_object_id(object_id)

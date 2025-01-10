@@ -160,6 +160,7 @@ def upgrade() -> None:
     sa.Column('vehicle_class', sa.String(), nullable=True),
     sa.Column('vehicle_type', sa.String(), nullable=True),
     sa.Column('vehicle_color', sa.String(), nullable=True),
+    sa.Column('car_image', sa.String(), nullable=True),
     sa.Column('is_active', sa.Boolean(), nullable=False),
     sa.Column('created_at', sa.DateTime(), nullable=False),
     sa.Column('updated_at', sa.DateTime(), nullable=False),
