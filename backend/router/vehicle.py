@@ -35,6 +35,7 @@ async def api_create_vehicle(
 @vehicle_router.get("/{plate_number}", response_model=VehicleInDB, status_code=status.HTTP_200_OK, dependencies=[Depends(check_password_changed)])
 async def api_get_vehicle(
     request: Request,
+    user_id: int,
     plate_number: str,
     db: AsyncSession = Depends(get_db),
     current_user: UserInDB=Depends(get_self_or_admin_or_staff_user)
@@ -47,6 +48,11 @@ async def api_get_vehicle(
     if not vehicle:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Vehicle not found!")
 
+    if vehicle.owner_id != user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Permission denied: You cannot view this resource.",
+        )
     if vehicle.car_image:
         filename = Path(vehicle.car_image).name
         vehicle.car_image_url = f"{request.base_url}uploads/car_images/{filename}"
