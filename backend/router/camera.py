@@ -59,7 +59,7 @@ async def api_update_camera(camera_id: int, camera: CameraUpdate, db:AsyncSessio
     return await camera_op.update_camera(camera_id, camera)
 
 
-@camera_router.delete("/{camera_id}", response_model=CameraInDB, status_code=status.HTTP_200_OK, dependencies=[Depends(check_password_changed)])
+@camera_router.delete("/{camera_id}", status_code=status.HTTP_200_OK, dependencies=[Depends(check_password_changed)])
 async def api_delete_camera(camera_id: int, db:AsyncSession=Depends(get_db), current_user: UserInDB=Depends(get_admin_or_staff_user)):
     camera_op = CameraOperation(db)
     return await camera_op.delete_object(camera_id)

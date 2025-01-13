@@ -45,7 +45,7 @@ async def api_update_gate(gate_id: int, gate: GateUpdate, db:AsyncSession=Depend
     return await gate_op.update_gate(gate_id, gate)
 
 
-@gate_router.delete("/{gate_id}", response_model=GateInDB, status_code=status.HTTP_200_OK, dependencies=[Depends(check_password_changed)])
+@gate_router.delete("/{gate_id}", status_code=status.HTTP_200_OK, dependencies=[Depends(check_password_changed)])
 async def api_delete_gate(gate_id: int, db:AsyncSession=Depends(get_db), current_user: UserInDB=Depends(get_admin_or_staff_user)):
     gate_op = GateOperation(db)
     return await gate_op.delete_object(gate_id)

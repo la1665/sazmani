@@ -40,7 +40,7 @@ async def api_update_setting(setting_id: int, setting: CameraSettingUpdate, db: 
     return await setting_op.update_setting(setting_id, setting)
 
 
-@camera_setting_router.delete("/{setting_id}", response_model=CameraSettingInDB, status_code=status.HTTP_200_OK, dependencies=[Depends(check_password_changed)])
+@camera_setting_router.delete("/{setting_id}", status_code=status.HTTP_200_OK, dependencies=[Depends(check_password_changed)])
 async def api_delete_setting(setting_id: int, db: AsyncSession = Depends(get_db), current_user: UserInDB=Depends(get_admin_or_staff_user)):
     setting_op = CameraSettingOperation(db)
     return await setting_op.delete_object(setting_id)

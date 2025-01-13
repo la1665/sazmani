@@ -81,8 +81,8 @@ class CrudOperation:
         try:
             await self.db_session.delete(db_object)
             await self.db_session.commit()
-            return db_object
-            # return {"message": f"object {db_object.name} deleted successfully"}
+            # return db_object
+            return {"message": f"object {object_id} deleted successfully"}
         except SQLAlchemyError as error:
             await self.db_session.rollback()
             raise HTTPException(status.HTTP_400_BAD_REQUEST, f"{error}: Could not delete object")

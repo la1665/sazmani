@@ -125,14 +125,14 @@ async def get_self_or_admin_or_staff_user(
         # Admin has access to update any user
         return target_user
 
-    if current_user.id == user_id:
-        # Users can update their own profile
-        return target_user
-
     if current_user.user_type == UserType.STAFF:
         # Staff can update users with 'viewer' or 'user' types
         if target_user.user_type in [UserType.VIEWER, UserType.USER]:
             return target_user
+
+    if current_user.id == user_id:
+        # Users can update their own profile
+        return target_user
 
     # If none of the conditions are met, deny access
     raise HTTPException(

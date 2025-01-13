@@ -45,7 +45,7 @@ async def api_update_building(building_id: int, building: BuildingUpdate, db:Asy
     return await building_op.update_building(building_id, building)
 
 
-@building_router.delete("/{building_id}", response_model=BuildingInDB, status_code=status.HTTP_200_OK, dependencies=[Depends(check_password_changed)])
+@building_router.delete("/{building_id}", status_code=status.HTTP_200_OK, dependencies=[Depends(check_password_changed)])
 async def api_delete_building(building_id: int, db:AsyncSession=Depends(get_db), current_user: UserInDB=Depends(get_admin_or_staff_user)):
     building_op = BuildingOperation(db)
     return await building_op.delete_object(building_id)

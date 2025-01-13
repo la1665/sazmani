@@ -1,5 +1,6 @@
 from pathlib import Path
 from fastapi import HTTPException, UploadFile, status
+from sqlalchemy import func
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.future import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -20,6 +21,25 @@ BASE_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 class VehicleOperation(CrudOperation):
     def __init__(self, db_session: AsyncSession) -> None:
         super().__init__(db_session, DBVehicle)
+
+    async def get_vehicles_by_user(self, user_id: int, page: int = 1, page_size: int = 10):
+        """
+        Retrieve vehicles of a specific user with pagination.
+        """
+        offset = (page - 1) * page_size
+        query = select(self.db_table).where(self.db_table.owner_id == user_id).offset(offset).limit(page_size)
+        result = await self.db_session.execute(query)
+        items = result.scalars().all()
+
+        total_query = await self.db_session.execute(select(func.count()).where(self.db_table.owner_id == user_id))
+        total_records = total_query.scalar()
+
+        return {
+            "items": items,
+            "total_records": total_records,
+            "page": page,
+            "page_size": page_size,
+        }
 
     async def get_one_vehcile_plate(self, plate: str):
         result = await self.db_session.execute(
