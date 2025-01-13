@@ -352,7 +352,7 @@ class SimpleTCPClient(basic.LineReceiver):
                 )
 
                 # Enqueue the traffic data for batch processing
-                await self.batch_queue.put(traffic_data)
+                # await self.batch_queue.put(traffic_data)
             print(f"[INFO] Enqueued {len(cars)} traffic records for batch processing.")
         except Exception as e:
             print(f"[ERROR] Failed to handle plates data: {e}")
