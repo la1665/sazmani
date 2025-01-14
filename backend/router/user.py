@@ -121,7 +121,7 @@ async def api_delete_user(
     return await user_op.delete_user(user_id)
 
 
-@user_router.post("/change-password", status_code=status.HTTP_200_OK)
+@user_router.post("/{user_id}/change-password", status_code=status.HTTP_200_OK)
 async def api_change_password(
     user_id: int,
     change_request: ChangePasswordRequest,

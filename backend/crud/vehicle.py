@@ -1,3 +1,4 @@
+import math
 from pathlib import Path
 from fastapi import HTTPException, UploadFile, status
 from sqlalchemy import func
@@ -31,13 +32,19 @@ class VehicleOperation(CrudOperation):
         result = await self.db_session.execute(query)
         items = result.scalars().all()
 
+        # Count total records
         total_query = await self.db_session.execute(select(func.count()).where(self.db_table.owner_id == user_id))
-        total_records = total_query.scalar()
+        total_records = total_query.scalar_one()
+
+        # Calculate total pages
+        # total_pages = (total_records + page_size - 1) // page_size if page_size > 0 else 1
+        total_pages = math.ceil(total_records / page_size) if page_size else 1
 
         return {
             "items": items,
             "total_records": total_records,
-            "page": page,
+            "total_pages": total_pages,
+            "current_page": page,
             "page_size": page_size,
         }
 
@@ -51,7 +58,7 @@ class VehicleOperation(CrudOperation):
     async def create_vehicle(self, vehicle: VehicleCreate):
         db_vehicle = await self.get_one_vehcile_plate(vehicle.plate_number)
         if db_vehicle:
-            raise HTTPException(status.HTTP_400_BAD_REQUEST, "vehicle with this plate number already exists.")
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, "Vehicle with this plate number already exists.")
         user_id = None
         if vehicle.owner_id:
             user_query = await self.db_session.execute(

@@ -125,20 +125,21 @@ async def get_self_or_admin_or_staff_user(
         # Admin has access to update any user
         return target_user
 
-    if current_user.user_type == UserType.STAFF:
+    elif current_user.user_type == UserType.STAFF:
         # Staff can update users with 'viewer' or 'user' types
         if target_user.user_type in [UserType.VIEWER, UserType.USER]:
             return target_user
 
-    if current_user.id == user_id:
+    elif current_user.id == target_user.id:
         # Users can update their own profile
         return target_user
 
     # If none of the conditions are met, deny access
-    raise HTTPException(
-        status_code=status.HTTP_403_FORBIDDEN,
-        detail="Permission denied: You cannot view this resource.",
-    )
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Permission denied: You cannot view this resource.",
+        )
 
 
 async def get_self_user_only(
