@@ -75,10 +75,9 @@ async def get_traffic_data(
     Retrieve traffic data with pagination.
     """
     proto = request.headers.get("X-Forwarded-Proto", "http")
-    base_url = str(request.base_url).split("//")[1].rstrip("/")
-    # base_url = str(request.base_url).split(":")[1].strip()  # Remove trailing slash if present
-    nginx_base_url = f"{proto}:{base_url}" # Remove trailing slash if present
-
+    # Construct the base URL correctly
+    base_url = str(request.base_url).rstrip("/")
+    nginx_base_url = f"{proto}://{base_url.split('//')[1]}"
 
     traffic_op = TrafficOperation(db)
     paginated_result = await traffic_op.get_all_traffics(
@@ -100,7 +99,8 @@ async def get_traffic_data(
         if traffic.plate_image_path:
             filename = Path(traffic.plate_image_path).name
             # traffic.plate_image_url = f"{nginx_base_url}:8000/uploads/plate_images/{filename}"
-            traffic.plate_image_url = f"http://{base_url}:8000/uploads/plate_images/{filename}"
+            # traffic.plate_image_url = f"http://{base_url}:8000/uploads/plate_images/{filename}"
+            traffic.plate_image_url = f"{nginx_base_url}/uploads/plate_images/{filename}"
 
     # Generate export link
     export_link = (
