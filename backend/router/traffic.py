@@ -75,7 +75,8 @@ async def get_traffic_data(
     Retrieve traffic data with pagination.
     """
     proto = request.headers.get("X-Forwarded-Proto", "http")
-    base_url = str(request.base_url).split(":")[1].strip()  # Remove trailing slash if present
+    base_url = str(request.base_url).split("//")[1].rstrip("/")
+    # base_url = str(request.base_url).split(":")[1].strip()  # Remove trailing slash if present
     nginx_base_url = f"{proto}:{base_url}" # Remove trailing slash if present
 
 
