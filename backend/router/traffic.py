@@ -98,7 +98,7 @@ async def get_traffic_data(
         traffic.plate_image_url = None
         if traffic.plate_image_path:
             filename = Path(traffic.plate_image_path).name
-            traffic.plate_image_url = f"http://{nginx_base_url}:8000/uploads/plate_images/{filename}"
+            traffic.plate_image_url = f"{nginx_base_url}:8000/uploads/plate_images/{filename}"
             # traffic.plate_image_url = f"http://{request.headers.get('host')}:8000/uploads/plate_images/{filename}"
 
     # Generate export link
