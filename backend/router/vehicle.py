@@ -125,7 +125,7 @@ async def api_get_vehicle(
     return vehicle
 
 
-@vehicle_router.patch("/users/{user_id}/vehicles/{vehicle_id}", status_code=status.HTTP_200_OK, dependencies=[Depends(check_password_changed)])
+@vehicle_router.patch("/users/vehicles/{vehicle_id}", status_code=status.HTTP_200_OK, dependencies=[Depends(check_password_changed)])
 async def api_change_activation(
     vehicle_id: int,
     db:AsyncSession=Depends(get_db),
