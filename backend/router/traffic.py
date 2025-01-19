@@ -58,6 +58,39 @@ def delete_file(path: Path):
     except Exception as e:
         print(f"[ERROR] Failed to delete file: {path}. Error: {e}")
 
+
+@traffic_router.get("/{traffic_id}", response_model=TrafficInDB, status_code=status.HTTP_200_OK)
+async def get_one_traffic_data(
+    request: Request,
+    traffic_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: UserInDB = Depends(get_admin_or_staff_user),
+):
+    """
+    Retrieve one traffic data.
+    """
+    # Extract the base URL and normalize it to include port 8000
+    proto = request.headers.get("X-Forwarded-Proto", "http")
+    raw_base_url = str(request.base_url).rstrip("/")
+    base_url_without_port = raw_base_url.split("//")[1].split(":")[0]
+    nginx_base_url = f"{proto}://{base_url_without_port}:8000"
+
+    traffic_op = TrafficOperation(db)
+    traffic = await traffic_op.get_one_object_id(traffic_id)
+
+    # Modify plate image URLs for display in the response
+    traffic.plate_image_url = None
+    if traffic.plate_image_path:
+        filename = Path(traffic.plate_image_path).name
+        traffic.plate_image_url = f"{nginx_base_url}/uploads/plate_images/{filename}"
+    traffic.full_image_url = None
+    if traffic.full_image_path:
+        filename = Path(traffic.full_image_path).name
+        traffic.full_image_url = f"{nginx_base_url}/uploads/traffic_images/{filename}"
+
+    return traffic
+
+
 @traffic_router.get("/", status_code=status.HTTP_200_OK)
 async def get_traffic_data(
     request: Request,
@@ -145,7 +178,11 @@ async def export_traffic_data(
     request: Request,
     gate_id: int = Query(None, description="Filter by gate ID"),
     camera_id: int = Query(None, description="Filter by camera ID"),
-    plate_number: str = Query(None, description="Filter by partial or exact plate number"),
+    prefix_2: str = Query(None, description="First two digits of plate number"),
+    alpha: str = Query(None, description="Alphabet character in plate number"),
+    mid_3: str = Query(None, description="Three middle digits in plate number"),
+    suffix_2: str = Query(None, description="Last two digits in plate number"),
+    # plate_number: str = Query(None, description="Filter by partial or exact plate number"),
     start_date: datetime = Query(None, description="Filter records from this date (ISO format)"),
     end_date: datetime = Query(None, description="Filter records up to this date (ISO format)"),
     db: AsyncSession = Depends(get_db),
@@ -166,7 +203,10 @@ async def export_traffic_data(
         page_size=1000,
         gate_id=gate_id,
         camera_id=camera_id,
-        plate_number=plate_number,
+        prefix_2=prefix_2,
+        alpha=alpha,
+        mid_3=mid_3,
+        suffix_2=suffix_2,
         start_date=start_date,
         end_date=end_date
     )
