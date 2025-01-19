@@ -87,13 +87,18 @@ def upgrade() -> None:
     op.create_index(op.f('ix_records_id'), 'records', ['id'], unique=False)
     op.create_table('traffic',
     sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('plate_number', sa.String(), nullable=True),
+    sa.Column('prefix_2', sa.String(), nullable=False),
+    sa.Column('alpha', sa.String(), nullable=False),
+    sa.Column('mid_3', sa.String(), nullable=False),
+    sa.Column('suffix_2', sa.String(), nullable=False),
+    sa.Column('plate_number', sa.String(), nullable=False),
     sa.Column('timestamp', sa.DateTime(), nullable=True),
     sa.Column('ocr_accuracy', sa.Float(), nullable=True),
     sa.Column('vision_speed', sa.Float(), nullable=True),
     sa.Column('camera_id', sa.Integer(), nullable=True),
     sa.Column('gate_id', sa.Integer(), nullable=True),
     sa.Column('plate_image_path', sa.String(), nullable=True),
+    sa.Column('full_image_path', sa.String(), nullable=True),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_index(op.f('ix_traffic_camera_id'), 'traffic', ['camera_id'], unique=False)

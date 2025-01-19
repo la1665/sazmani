@@ -18,6 +18,8 @@ from schema.traffic import TrafficCreate
 
 BASE_UPLOAD_DIR = Path("uploads/plate_images")
 BASE_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+TRAFFIC_UPLOAD_DIR = Path("uploads/traffic_images")
+TRAFFIC_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 
 class TrafficOperation(CrudOperation):
@@ -53,12 +55,32 @@ class TrafficOperation(CrudOperation):
                         status_code=status.HTTP_400_BAD_REQUEST,
                         detail=f"Failed to save plate image: {e}"
                     )
+            full_image_path = None
+            if traffic.full_image_path:
+                try:
+                    # Decode the base64 image and save it to the file system
+                    image_bytes = base64.b64decode(traffic.full_image_path)
+                    image_name = f"{traffic.plate_number}_{traffic.timestamp.isoformat().replace(':', '-')}.jpg"
+                    image_path = TRAFFIC_UPLOAD_DIR / image_name
+                    with open(image_path, "wb") as img_file:
+                        img_file.write(image_bytes)
+                    full_image_path = str(image_path)
+                except Exception as e:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"Failed to save traffic image: {e}"
+                    )
             naive_timestamp = traffic.timestamp.replace(tzinfo=None)
             new_traffic = self.db_table(
+                prefix_2 = traffic.prefix_2,
+                alpha = traffic.alpha,
+                mid_3 = traffic.mid_3,
+                suffix_2 = traffic.suffix_2,
                 plate_number = traffic.plate_number,
                 ocr_accuracy = traffic.ocr_accuracy,
                 vision_speed = traffic.vision_speed,
                 plate_image_path=plate_image_path,
+                full_image_path=full_image_path,
                 timestamp = naive_timestamp,
                 camera_id = db_camera.id,
                 gate_id = db_gate.id,
@@ -88,7 +110,11 @@ class TrafficOperation(CrudOperation):
         page_size: int = 10,
         gate_id: int = None,
         camera_id: int = None,
-        plate_number: str = None,
+        prefix_2: str = None,
+        alpha: str = None,
+        mid_3: str = None,
+        suffix_2: str = None,
+        # plate_number: str = None,
         start_date: datetime = None,
         end_date: datetime = None,
     ):
@@ -104,8 +130,16 @@ class TrafficOperation(CrudOperation):
                 query = query.where(self.db_table.gate_id == gate_id)
             if camera_id is not None:
                 query = query.where(self.db_table.camera_id == camera_id)
-            if plate_number is not None:
-                query = query.where(self.db_table.plate_number.ilike(f"%{plate_number}%"))
+            if prefix_2 is not None:
+                query = query.where(self.db_table.prefix_2 == prefix_2)
+            if alpha is not None:
+                query = query.where(self.db_table.alpha == alpha)
+            if mid_3 is not None:
+                query = query.where(self.db_table.mid_3 == mid_3)
+            if suffix_2 is not None:
+                query = query.where(self.db_table.suffix_2 == suffix_2)
+            # if plate_number is not None:
+            #     query = query.where(self.db_table.plate_number.ilike(f"%{plate_number}%"))
             if start_date is not None:
                 query = query.where(self.db_table.timestamp >= start_date)
             if end_date is not None:

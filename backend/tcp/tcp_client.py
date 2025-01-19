@@ -1,4 +1,5 @@
 import base64
+import re
 import cv2
 import datetime
 import numpy as np
@@ -331,6 +332,7 @@ class SimpleTCPClient(basic.LineReceiver):
         message_body = message["messageBody"]
         camera_id = message_body.get("camera_id")
         timestamp = message_body.get("timestamp")
+        full_image_base64 = message_body.get("full_image")
         cars = message_body.get("cars", [])
 
         # save_plates_data_to_db.delay(camera_id, timestamp, cars)
@@ -341,12 +343,25 @@ class SimpleTCPClient(basic.LineReceiver):
                 vision_speed = car.get("vision_speed", 0.0)
                 plate_image_base64 = car.get("plate", {}).get("plate_image", "")
 
+                # Split the plate_number into components
+                match = re.match(r"(\d{2})([a-zA-Z])(\d{3})(\d{2})", plate_number)
+                if not match:
+                    print(f"[WARNING] Invalid plate number format: {plate_number}")
+                    continue
+
+                prefix_2, alpha, mid_3, suffix_2 = match.groups()
+
                 # Create a TrafficCreate object
                 traffic_data = TrafficCreate(
+                    prefix_2=prefix_2,
+                    alpha=alpha,
+                    mid_3=mid_3,
+                    suffix_2=suffix_2,
                     plate_number=plate_number,
                     ocr_accuracy=ocr_accuracy,
                     vision_speed=vision_speed,
                     plate_image_path=plate_image_base64,
+                    full_image_path=full_image_base64,
                     timestamp=timestamp,
                     camera_id=camera_id,
                 )

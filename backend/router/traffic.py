@@ -65,7 +65,11 @@ async def get_traffic_data(
     page_size: int = Query(10, ge=1, le=100, description="Number of records per page"),
     gate_id: int = Query(None, description="Filter by gate ID"),
     camera_id: int = Query(None, description="Filter by camera ID"),
-    plate_number: str = Query(None, description="Filter by partial or exact plate number"),
+    prefix_2: str = Query(None, description="First two digits of plate number"),
+    alpha: str = Query(None, description="Alphabet character in plate number"),
+    mid_3: str = Query(None, description="Three middle digits in plate number"),
+    suffix_2: str = Query(None, description="Last two digits in plate number"),
+    # plate_number: str = Query(None, description="Filter by partial or exact plate number"),
     start_date: datetime = Query(None, description="Filter records from this date (ISO format)"),
     end_date: datetime = Query(None, description="Filter records up to this date (ISO format)"),
     db: AsyncSession = Depends(get_db),
@@ -74,6 +78,12 @@ async def get_traffic_data(
     """
     Retrieve traffic data with pagination.
     """
+    if end_date is not None and start_date is not None and end_date <= start_date:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="End date must be greater than start date."
+        )
+
     proto = request.headers.get("X-Forwarded-Proto", "http")
 
     # Extract the base URL and normalize it to include port 8000
@@ -87,7 +97,11 @@ async def get_traffic_data(
         page_size=page_size,
         gate_id=gate_id,
         camera_id=camera_id,
-        plate_number=plate_number,
+        prefix_2=prefix_2,
+        alpha=alpha,
+        mid_3=mid_3,
+        suffix_2=suffix_2,
+        # plate_number=plate_number,
         start_date=start_date,
         end_date=end_date
     )
@@ -101,13 +115,21 @@ async def get_traffic_data(
         if traffic.plate_image_path:
             filename = Path(traffic.plate_image_path).name
             traffic.plate_image_url = f"{nginx_base_url}/uploads/plate_images/{filename}"
+        traffic.full_image_url = None
+        if traffic.full_image_path:
+            filename = Path(traffic.full_image_path).name
+            traffic.full_image_url = f"{nginx_base_url}/uploads/traffic_images/{filename}"
 
     # Generate export link
     export_link = (
         f"{nginx_base_url}/v1/traffic/export?"
         f"gate_id={gate_id or ''}&"
         f"camera_id={camera_id or ''}&"
-        f"plate_number={plate_number or ''}&"
+        f"prefix_2={prefix_2 or ''}&"
+        f"alpha={alpha or ''}&"
+        f"mid_3={mid_3 or ''}&"
+        f"suffix_2={suffix_2 or ''}&"
+        # f"plate_number={plate_number or ''}&"
         f"start_date={start_date.isoformat() if start_date else ''}&"
         f"end_date={end_date.isoformat() if end_date else ''}"
     )
