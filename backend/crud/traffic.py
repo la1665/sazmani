@@ -82,8 +82,8 @@ class TrafficOperation(CrudOperation):
                 plate_image_path=plate_image_path,
                 full_image_path=full_image_path,
                 timestamp = naive_timestamp,
-                camera_id = db_camera.id,
-                gate_id = db_gate.id,
+                camera_name = db_camera.name,
+                gate_name = db_gate.name,
             )
             self.db_session.add(new_traffic)
             await self.db_session.commit()

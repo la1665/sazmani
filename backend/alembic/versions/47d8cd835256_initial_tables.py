@@ -95,14 +95,14 @@ def upgrade() -> None:
     sa.Column('timestamp', sa.DateTime(), nullable=True),
     sa.Column('ocr_accuracy', sa.Float(), nullable=True),
     sa.Column('vision_speed', sa.Float(), nullable=True),
-    sa.Column('camera_id', sa.Integer(), nullable=True),
-    sa.Column('gate_id', sa.Integer(), nullable=True),
+    sa.Column('camera_name', sa.String(), nullable=True),
+    sa.Column('gate_name', sa.String(), nullable=True),
     sa.Column('plate_image_path', sa.String(), nullable=True),
     sa.Column('full_image_path', sa.String(), nullable=True),
     sa.PrimaryKeyConstraint('id')
     )
-    op.create_index(op.f('ix_traffic_camera_id'), 'traffic', ['camera_id'], unique=False)
-    op.create_index(op.f('ix_traffic_gate_id'), 'traffic', ['gate_id'], unique=False)
+    op.create_index(op.f('ix_traffic_camera_name'), 'traffic', ['camera_name'], unique=False)
+    op.create_index(op.f('ix_traffic_gate_name'), 'traffic', ['gate_name'], unique=False)
     op.create_index(op.f('ix_traffic_id'), 'traffic', ['id'], unique=False)
     op.create_index(op.f('ix_traffic_plate_number'), 'traffic', ['plate_number'], unique=False)
     op.create_table('users',

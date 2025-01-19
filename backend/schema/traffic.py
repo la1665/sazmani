@@ -15,14 +15,13 @@ class TrafficBase(BaseModel):
     ocr_accuracy: float
     vision_speed: float
     timestamp: datetime
-    camera_id: int
     plate_image_path: Optional[str]
     full_image_path: Optional[str]
     # gate_id: int
 
 
 class TrafficCreate(TrafficBase):
-    pass
+    camera_id: int
 
 class TrafficUpdate(BaseModel):
     pass
@@ -30,7 +29,8 @@ class TrafficUpdate(BaseModel):
 
 class TrafficInDB(TrafficBase):
     id: int
-    gate_id: int
+    gate_name: str
+    camera_name: str
     plate_image_url: Optional[str] = None
     full_image_url: Optional[str] = None
     # owner_username: Optional[str] = None
