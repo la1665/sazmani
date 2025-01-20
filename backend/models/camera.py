@@ -27,6 +27,8 @@ class DBCamera(Base):
             lazy="selectin",
             cascade="all, delete-orphan"
         )
+    keys = relationship("DBRelayKey", back_populates="camera")
+    # keys = relationship("DBRelayKey", back_populates="camera", cascade="all, delete-orphan", lazy="selectin")
     # lprs = relationship(
     #     "DBLpr",
     #     secondary=camera_lpr_association,

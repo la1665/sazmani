@@ -13,6 +13,7 @@ from crud.camera_setting import CameraSettingOperation
 from crud.lpr_setting import LprSettingOperation
 from crud.lpr import LprOperation
 from crud.camera import CameraOperation
+from crud.status import StatusOperation
 from schema.user import UserCreate
 from schema.building import BuildingCreate
 from schema.gate import GateCreate
@@ -20,6 +21,7 @@ from schema.camera_setting import CameraSettingCreate
 from schema.lpr_setting import LprSettingCreate
 from schema.lpr import LprCreate
 from schema.camera import CameraCreate
+from schema.status import StatusCreate
 from tcp.tcp_manager import add_connection
 
 
@@ -133,6 +135,14 @@ default_camera = {
     "updated_at": datetime.utcnow(),
 }
 
+default_status = {
+    "name": "No_action",
+    "description": "وضعیت پیش فرض",
+    "is_active": True,
+    "created_at": datetime.utcnow(),  # Add timestamp
+    "updated_at": datetime.utcnow(),
+}
+
 async def create_default_admin(db: AsyncSession):
     if settings.ADMIN_PERSONAL_NUMBER:
         user_op = UserOperation(db)
@@ -222,3 +232,17 @@ async def initialize_defaults(db: AsyncSession):
         print(f"Created camera with ID: {new_camera.id}")
         await add_connection(db, lpr_id=new_camera.lpr_id)
     print("default cameras created!!!")
+
+
+    status_op = StatusOperation(db)
+    db_status = await status_op.get_one_object_name(default_status.get("name"))
+    if db_status:
+        print("Status object already exists.")
+    else:
+        status_obj = StatusCreate(
+        name=default_status["name"],
+        description=default_status["description"],
+        )
+        new_status = await status_op.create_status(status_obj)
+        print(f"Created status with ID: {new_status.id}")
+    print("default status created!!!")

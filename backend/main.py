@@ -15,6 +15,9 @@ from router.building import building_router
 from router.gate import gate_router
 from router.camera import camera_router
 from router.lpr import lpr_router
+from router.relay import relay_router
+from router.status import status_router
+from router.key import relay_key_router
 from router.vehicle import vehicle_router
 from router.traffic import traffic_router
 from router.record import record_router
@@ -64,6 +67,9 @@ include_router(app, building_router)
 include_router(app, gate_router)
 include_router(app, camera_router)
 include_router(app, lpr_router)
+include_router(app, relay_router)
+include_router(app, status_router)
+include_router(app, relay_key_router)
 include_router(app, vehicle_router)
 include_router(app, traffic_router)
 include_router(app, record_router)
