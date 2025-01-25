@@ -135,13 +135,29 @@ default_camera = {
     "updated_at": datetime.utcnow(),
 }
 
-default_status = {
+default_status = [
+    {
     "name": "No_action",
     "description": "وضعیت پیش فرض",
     "is_active": True,
     "created_at": datetime.utcnow(),  # Add timestamp
     "updated_at": datetime.utcnow(),
-}
+    },
+    {
+    "name": "Valid",
+    "description": "وضعیت مجاز",
+    "is_active": True,
+    "created_at": datetime.utcnow(),  # Add timestamp
+    "updated_at": datetime.utcnow(),
+    },
+    {
+    "name": "Invalid",
+    "description": "وضعبت غیر مجاز",
+    "is_active": True,
+    "created_at": datetime.utcnow(),  # Add timestamp
+    "updated_at": datetime.utcnow(),
+    },
+]
 
 async def create_default_admin(db: AsyncSession):
     if settings.ADMIN_PERSONAL_NUMBER:
@@ -265,14 +281,15 @@ async def initialize_defaults(db: AsyncSession):
 
 
     status_op = StatusOperation(db)
-    db_status = await status_op.get_one_object_name(default_status.get("name"))
-    if db_status:
-        print("Status object already exists.")
-    else:
-        status_obj = StatusCreate(
-        name=default_status["name"],
-        description=default_status["description"],
-        )
-        new_status = await status_op.create_status(status_obj)
-        print(f"Created status with ID: {new_status.id}")
+    for stat in default_status:
+        db_status = await status_op.get_one_object_name(stat.get("name"))
+        if db_status:
+            print("Status object already exists.")
+        else:
+            status_obj = StatusCreate(
+            name=stat["name"],
+            description=stat["description"],
+            )
+            new_status = await status_op.create_status(status_obj)
+            print(f"Created status with ID: {new_status.id}")
     print("default status created!!!")

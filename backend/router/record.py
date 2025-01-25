@@ -1,6 +1,6 @@
 from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
-from fastapi import APIRouter, HTTPException, Depends, Request
+from fastapi import APIRouter, HTTPException, Depends, Request, status
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
 from database.engine import async_session
@@ -23,7 +23,7 @@ RECORDINGS_DIR = BASE_UPLOAD_DIR / "recordings"
 
 record_router = APIRouter()
 
-@record_router.get("/records/", response_model=RecordPagination)
+@record_router.get("/records/", status_code=status.HTTP_200_OK)
 async def get_records(
     request: Request,
     page: int = 1,

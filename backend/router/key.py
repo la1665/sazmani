@@ -146,4 +146,4 @@ async def api_push_relay_key(
 
     # Perform the push operation with the specified duration
     # This is a placeholder for the actual operation
-    return {"message": f"Push command executed for Relay Key ID {relay_key_id} with duration {command.push_duration}"}
+    return {"message": f"Push command executed for Relay Key ID {relay_key_id} with duration {command}"}

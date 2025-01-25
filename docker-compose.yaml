@@ -74,7 +74,7 @@ services:
     build:
       context: ./backend
     container_name: sazman_nats_consumer
-    restart: on-failure
+    restart: always
     command: ["python", "nats_microservice.py"]
     volumes:
       - ./logs:/app/logs
