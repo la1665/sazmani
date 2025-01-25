@@ -8,7 +8,7 @@ from schema.user import UserInDB
 from schema.camera import CameraCreate, CameraUpdate, CameraInDB, CameraPagination
 from schema.camera_setting import CameraSettingInstanceUpdate, CameraSettingInstanceCreate, CameraSettingInstanceInDB, CameraSettingInstancePagination
 from crud.camera import CameraOperation
-from utils.middlewwares import check_password_changed
+from utils.middlewares import check_password_changed
 
 
 camera_router = APIRouter(

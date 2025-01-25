@@ -38,9 +38,9 @@ class KeyOperation(CrudOperation):
                 key_number=relay_key.key_number,
                 duration=relay_key.key_number,
                 description=relay_key.key_number,
-                relay_id=db_relay.id,
-                status_id=db_status.id,
-                camera_id=db_camera.id,
+                relay_id=relay_key.relay_id,
+                status_id=relay_key.status_id,
+                camera_id=relay_key.camera_id,
             )
             self.db_session.add(db_relay_key)
             await self.db_session.commit()

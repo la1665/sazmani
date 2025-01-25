@@ -12,7 +12,7 @@ from schema.user import UserCreate, UserPagination, UserUpdate, SelfUserUpdate, 
 from crud.user import UserOperation
 from auth.auth import verify_password, get_password_hash
 from auth.authorization import get_admin_user, get_admin_or_staff_user, get_self_or_admin_or_staff_user, get_self_or_admin_user, get_self_user_only
-from utils.middlewwares import check_password_changed
+from utils.middlewares import check_password_changed
 
 
 # Define the base URL for serving uploaded files

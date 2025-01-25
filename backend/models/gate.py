@@ -28,5 +28,5 @@ class DBGate(Base):
     building = relationship('DBBuilding', back_populates='gates')
     cameras = relationship("DBCamera", back_populates="gate", cascade="all, delete-orphan", lazy="selectin")
     users = relationship("DBUser", secondary=viewer_gate_access, back_populates="gates")
-    relays = relationship("DBRelay", back_populates="gate")
+    relays = relationship("DBRelay", back_populates="gate", lazy="selectin")
     # relays = relationship("DBRelay", back_populates="gate", cascade="all, delete-orphan", lazy="selectin")

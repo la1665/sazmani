@@ -9,8 +9,7 @@ from schema.pagination import Pagination
 
 class RelaySummery(BaseModel):
     id: int
-    ip: str
-    port: int
+    name: str
     protocol: ProtocolEnum
     is_active: bool
 

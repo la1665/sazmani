@@ -6,7 +6,7 @@ from database.engine import get_db
 from schema.user import UserInDB
 from schema.camera_setting import CameraSettingCreate, CameraSettingUpdate, CameraSettingInDB, CameraSettingPagination
 from crud.camera_setting import CameraSettingOperation
-from utils.middlewwares import check_password_changed
+from utils.middlewares import check_password_changed
 
 
 

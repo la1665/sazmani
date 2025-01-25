@@ -9,7 +9,7 @@ from schema.vehicle import VehicleCreate, VehiclePagination, VehicleInDB
 from crud.vehicle import VehicleOperation
 from schema.user import UserInDB
 from auth.authorization import get_admin_or_staff_user, get_admin_user, get_admin_or_staff_user, get_self_or_admin_or_staff_user, get_self_or_admin_user, get_self_user_only, get_current_active_user
-from utils.middlewwares import check_password_changed
+from utils.middlewares import check_password_changed
 from models.user import UserType
 
 

@@ -5,7 +5,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
-from tcp.tcp_manager import add_connection, update_connection
+# from tcp.tcp_manager import add_connection, update_connection
 from crud.base import CrudOperation
 from crud.gate import GateOperation
 from crud.lpr import LprOperation

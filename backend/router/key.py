@@ -7,7 +7,7 @@ from twisted.internet.ssl import KeyPair
 
 from database.engine import get_db
 from auth.authorization import get_admin_or_staff_user
-from utils.middlewwares import check_password_changed
+from utils.middlewares import check_password_changed
 from schema.user import UserInDB
 from crud.key import KeyOperation
 from schema.key import KeyCreate, KeyUpdate, KeyInDB, KeyPagination

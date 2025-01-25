@@ -12,7 +12,7 @@ from models.camera import DBCamera
 from models.lpr import DBLpr
 from schema.lpr import LprUpdate, LprCreate
 from schema.lpr_setting import LprSettingInstanceCreate, LprSettingInstanceUpdate
-from tcp.tcp_manager import add_connection, update_connection, remove_connection
+# from tcp.tcp_manager import add_connection, update_connection, remove_connection
 
 
 class LprOperation(CrudOperation):

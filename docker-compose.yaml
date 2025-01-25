@@ -19,25 +19,25 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./init-scripts:/docker-entrypoint-initdb.d
 
-  alembic:
-    build:
-      context: ./backend
-    container_name: sazman_alembic
-    restart: on-failure
-    depends_on:
-      - db
-    volumes:
-      - ./backend:/app
-    env_file:
-      - ./backend/.env
-    command: alembic upgrade head
+  # alembic:
+  #   build:
+  #     context: ./backend
+  #   container_name: sazman_alembic
+  #   restart: on-failure
+  #   depends_on:
+  #     - db
+  #   volumes:
+  #     - ./backend:/app
+  #   env_file:
+  #     - ./backend/.env
+  #   command: alembic upgrade head
 
-  redis:
-    image: redis:6.2.13
-    container_name: sazman_redis
-    restart: on-failure
-    ports:
-      - "6379:6379"
+  # redis:
+  #   image: redis:6.2.13
+  #   container_name: sazman_redis
+  #   restart: on-failure
+  #   ports:
+  #     - "6379:6379"
 
   backend:
     build:
@@ -69,26 +69,43 @@ services:
       - host.docker.internal:host-gateway
     depends_on:
       - db
-      - alembic
-      - redis
 
-  celery_worker:
+  nats_service:
     build:
       context: ./backend
+    container_name: sazman_nats_consumer
     restart: on-failure
-    container_name: sazman_celery
-    command: celery -A task_manager.celery_app worker --loglevel=info --concurrency=2
+    command: ["python", "nats_microservice.py"]
     volumes:
-      - ./backend:/app
-      - ./backend/certs:/app/certs
+      - ./logs:/app/logs
+      - ./uploads:/app/uploads
     env_file:
       - ./backend/.env
-    depends_on:
-      - redis
-      - backend
     environment:
-      - CELERY_BROKER_URL=redis://redis:6379/0
-      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      PYTHONUNBUFFERED: 1
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    depends_on:
+      - db
+      - backend
+
+  # celery_worker:
+  #   build:
+  #     context: ./backend
+  #   restart: on-failure
+  #   container_name: sazman_celery
+  #   command: celery -A task_manager.celery_app worker --loglevel=info --concurrency=2
+  #   volumes:
+  #     - ./backend:/app
+  #     - ./backend/certs:/app/certs
+  #   env_file:
+  #     - ./backend/.env
+  #   depends_on:
+  #     - redis
+  #     - backend
+  #   environment:
+  #     - CELERY_BROKER_URL=redis://redis:6379/0
+  #     - CELERY_RESULT_BACKEND=redis://redis:6379/0
 
   frontend:
     image: nginx:1.22

@@ -28,6 +28,7 @@ class DBRelay(Base):
     __tablename__ = "relays"
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    name = Column(String, nullable=False, index=True)
     ip = Column(String, nullable=False, index=True)  # IP address of the relay
     port = Column(Integer, nullable=False)  # Port for communication
     protocol = Column(sqlalchemyEnum(ProtocolEnum), default=ProtocolEnum.API, nullable=False)  # Protocol (TCP, UDP)
@@ -40,5 +41,5 @@ class DBRelay(Base):
     )
     # Relationship with Gate
     gate_id = Column(Integer, ForeignKey("gates.id"), nullable=False)  # Foreign key to Gate
-    gate = relationship("DBGate", back_populates="relays")
+    gate = relationship("DBGate", back_populates="relays", lazy="joined")
     keys = relationship('DBRelayKey', back_populates='relay', cascade='all, delete-orphan', lazy="selectin")

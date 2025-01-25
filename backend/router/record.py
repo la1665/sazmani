@@ -5,15 +5,17 @@ from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
 from database.engine import async_session
 from pathlib import Path
+from datetime import datetime
 
+from database.engine import get_db
 from shared_resources import connections
 from auth.authorization import get_admin_or_staff_user
 from models.camera import DBCamera
-from database.engine import get_db
-from models.record import DBRecord
-from crud.record import RecordOperation
+from models.record import DBRecord, DBScheduledRecord
+from crud.record import RecordOperation, ScheduledRecordOperation
 from schema.user import UserInDB
-
+from schema.record import RecordCreate, RecordInDB, RecordPagination
+from socket_managment_nats_ import publish_message_to_nats
 
 # Directory for recordings
 BASE_UPLOAD_DIR = Path("uploads")
@@ -21,9 +23,11 @@ RECORDINGS_DIR = BASE_UPLOAD_DIR / "recordings"
 
 record_router = APIRouter()
 
-@record_router.get("/records/")
+@record_router.get("/records/", response_model=RecordPagination)
 async def get_records(
     request: Request,
+    page: int = 1,
+    page_size: int = 10,
     camera_id: int = None,
     db: AsyncSession = Depends(get_db),
     current_user: UserInDB=Depends(get_admin_or_staff_user),
@@ -32,7 +36,7 @@ async def get_records(
     Get recorded video information.
     """
     record_op = RecordOperation(db)
-    records = await record_op.get_records(camera_id=camera_id)
+    records = await record_op.get_all_records(page, page_size, camera_id)
 
     # Dynamically construct the base URL based on the request
     proto = request.headers.get("X-Forwarded-Proto", "http")
@@ -47,7 +51,7 @@ async def get_records(
             "timestamp": record.timestamp,
             "video_url": f"{nginx_base_url}/uploads/recordings/{record.title}",
         }
-        for record in records
+        for record in records["records"]
     ]
 
 
@@ -121,3 +125,65 @@ async def start_recording(
                 raise HTTPException(status_code=500, detail="LPR server not authenticated or connected")
         else:
             raise HTTPException(status_code=500, detail="No active connection for LPR")
+
+
+
+@record_router.get("/scheduled_recordings", status_code=200)
+async def get_scheduled_recordings(
+    request: Request,
+    page: int = 1,
+    page_size: int = 10,
+    db: AsyncSession = Depends(get_db),
+    current_user: UserInDB=Depends(get_admin_or_staff_user),
+):
+    schedule_record_op = ScheduledRecordOperation(db)
+    records = await schedule_record_op.get_all_scheduled_records(page, page_size)
+
+    # Dynamically construct the base URL based on the request
+    proto = request.headers.get("X-Forwarded-Proto", "http")
+    base_url = str(request.base_url).split(":")[1].strip()  # Remove trailing slash if present
+    nginx_base_url = f"{proto}:{base_url}" # Remove trailing slash if present
+
+    return [
+        {
+            "id": record.id,
+            "title": record.title,
+            "camera_id": record.camera_id,
+            "timestamp": record.timestamp,
+            "video_url": f"{nginx_base_url}/uploads/recordings/{record.title}",
+        }
+        for record in records["records"]
+    ]
+
+async def process_scheduled_recordings():
+    """
+    Check and process scheduled recordings that are due to start.
+    """
+    async with async_session() as session:
+        # Fetch all unprocessed scheduled recordings with a start time <= current time
+        query = select(DBScheduledRecord).where(
+            DBScheduledRecord.scheduled_time <= datetime.utcnow(),
+            DBScheduledRecord.is_processed == False
+        )
+        result = await session.execute(query)
+        scheduled_records = result.scalars().all()
+
+        for record in scheduled_records:
+            try:
+                # Build NATS payload
+                nats_payload = {
+                    "commandType": "recording",
+                    "cameraId": str(record.camera_id),
+                    "duration": record.duration,
+                }
+
+                # Send the message to NATS
+                await publish_message_to_nats(nats_payload, record.camera_id)
+                record.is_processed = True
+                session.add(record)
+                await session.commit()
+
+                print(f"Started recording for scheduled record ID: {record.id}")
+
+            except Exception as e:
+                print(f"Failed to process scheduled record ID: {record.id}, Error: {str(e)}")

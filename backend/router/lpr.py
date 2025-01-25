@@ -8,8 +8,7 @@ from schema.camera import CameraPagination
 from schema.lpr import LprCreate, LprUpdate, LprInDB, LprPagination
 from schema.lpr_setting import LprSettingInstanceCreate, LprSettingInstanceUpdate, LprSettingInstanceInDB, LprSettingInstancePagination
 from crud.lpr import LprOperation
-from utils.middlewwares import check_password_changed
-from tcp.tcp_manager import add_connection, update_connection, remove_connection
+from utils.middlewares import check_password_changed
 
 # Create an APIRouter for user-related routes
 lpr_router = APIRouter(

@@ -22,7 +22,7 @@ from schema.lpr_setting import LprSettingCreate
 from schema.lpr import LprCreate
 from schema.camera import CameraCreate
 from schema.status import StatusCreate
-from tcp.tcp_manager import add_connection
+# from tcp.tcp_manager import add_connection
 
 
 default_building = {
@@ -38,7 +38,7 @@ default_building = {
 default_gate = {
     "name": "گیت اصلی ساختمان مرکزی",
     "description": "گیت اصلی شعبه مرکزی تهران",
-    "gate_type": GateType.BOTH.name,
+    "gate_type": GateType.BOTH,
     "building_id": 1,
     "is_active": True,
     "created_at": datetime.utcnow(),  # Add timestamp
@@ -166,6 +166,36 @@ async def create_default_admin(db: AsyncSession):
 
 async def initialize_defaults(db: AsyncSession):
 
+    building_op = BuildingOperation(db)
+    db_building = await building_op.get_one_object_name(default_building["name"])
+    if db_building:
+        print("building object already exists.")
+    else:
+        building_obj = BuildingCreate(
+            name=default_building["name"],
+            description=default_building["description"],
+            latitude=default_building["latitude"],
+            longitude=default_building["longitude"],
+        )
+        db_building = await building_op.create_building(building_obj)
+        print(f"Created building with ID: {db_building.id}")
+    print("default building created!!!")
+
+    gate_op = GateOperation(db)
+    db_gate = await gate_op.get_one_object_name(default_gate["name"])
+    if db_gate:
+        print("gate object already exists.")
+    else:
+        gate_obj = GateCreate(
+            name=default_gate["name"],
+            description=default_gate["description"],
+            gate_type=default_gate["gate_type"],
+            building_id=db_building.id,
+        )
+        db_gate = await gate_op.create_gate(gate_obj)
+        print(f"Created gate with ID: {db_gate.id}")
+    print("default gate created!!!")
+
     camera_setting_op = CameraSettingOperation(db)
     for setting in default_camera_settings:
         existing_setting = await camera_setting_op.get_one_object_name(setting.get("name"))
@@ -217,20 +247,20 @@ async def initialize_defaults(db: AsyncSession):
     db_camera = await camera_op.get_one_object_name(default_camera.get("name"))
     if db_camera:
         print("camera object already exists.")
-        print("connecting to twisted ...")
-        await add_connection(db, lpr_id=db_camera.lpr_id)
+        # print("connecting to twisted ...")
+        # await add_connection(db, lpr_id=db_camera.lpr_id)
     else:
         camera_obj = CameraCreate(
         name=default_camera["name"],
         description=default_camera["description"],
         latitude=default_camera["latitude"],
         longitude=default_camera["longitude"],
-        gate_id=default_camera["gate_id"],
+        gate_id=db_gate.id,
         lpr_id=db_lpr.id,
         )
         new_camera = await camera_op.create_camera(camera_obj)
         print(f"Created camera with ID: {new_camera.id}")
-        await add_connection(db, lpr_id=new_camera.lpr_id)
+        # await add_connection(db, lpr_id=new_camera.lpr_id)
     print("default cameras created!!!")
 
 

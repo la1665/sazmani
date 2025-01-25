@@ -6,6 +6,11 @@ from enum import Enum
 from models.relay import ProtocolEnum
 from schema.pagination import Pagination
 
+
+class GateSummmary(BaseModel):
+    name: str
+    description: str
+
 class KeySummery(BaseModel):
     id: int
     key_number: int
@@ -15,6 +20,7 @@ class KeySummery(BaseModel):
     camera_id: Optional[int]=None
 
 class RelayBase(BaseModel):
+    name: str
     ip: str
     port: int
     protocol: ProtocolEnum = Field(default=ProtocolEnum.API)
@@ -35,10 +41,12 @@ class RelayUpdate(BaseModel):
 
 class RelayInDB(RelayBase):
     id: int
-    gate_id: int
+    # gate_id: int
     created_at: datetime
     updated_at: datetime
     is_active: bool
+    gate_id: int
+    gate: Optional[GateSummmary] = None
     keys : List[KeySummery] = []
 
     class Config:

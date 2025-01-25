@@ -7,7 +7,8 @@ from pathlib import Path
 from fastapi.middleware.cors import CORSMiddleware
 
 from lifespan import lifespan
-from socket_management import sio
+# from socket_management import sio
+from socket_managment_nats_ import sio
 from router.base import include_router
 from router.auth import auth_router
 from router.user import user_router
@@ -21,7 +22,7 @@ from router.key import relay_key_router
 from router.vehicle import vehicle_router
 from router.traffic import traffic_router
 from router.record import record_router
-from task_manager.celery_app import celery, add_numbers
+# from task_manager.celery_app import celery, add_numbers
 
 
 app = FastAPI(
@@ -81,26 +82,26 @@ async def root():
     """
     return {"message": "Welcome to the Sazman API!"}
 
-@app.get("/add/")
-async def add(a: int, b: int):
-    task = add_numbers.delay(a, b)
-    return {"task_id": task.id, "status": "Task submitted"}
+# @app.get("/add/")
+# async def add(a: int, b: int):
+#     task = add_numbers.delay(a, b)
+#     return {"task_id": task.id, "status": "Task submitted"}
 
-@app.get("/get-task-result/")
-async def get_task_result(task_id: str):
-    from celery.result import AsyncResult
+# @app.get("/get-task-result/")
+# async def get_task_result(task_id: str):
+#     from celery.result import AsyncResult
 
-    # Get task result using the task ID
-    task_result = AsyncResult(task_id, app=celery)
+#     # Get task result using the task ID
+#     task_result = AsyncResult(task_id, app=celery)
 
-    if task_result.state == "PENDING":
-        return {"task_id": task_id, "status": "Task is still running"}
-    elif task_result.state == "SUCCESS":
-        return {"task_id": task_id, "status": "Task completed", "result": task_result.result}
-    elif task_result.state == "FAILURE":
-        return {"task_id": task_id, "status": "Task failed", "error": str(task_result.info)}
-    else:
-        return {"task_id": task_id, "status": task_result.state}
+#     if task_result.state == "PENDING":
+#         return {"task_id": task_id, "status": "Task is still running"}
+#     elif task_result.state == "SUCCESS":
+#         return {"task_id": task_id, "status": "Task completed", "result": task_result.result}
+#     elif task_result.state == "FAILURE":
+#         return {"task_id": task_id, "status": "Task failed", "error": str(task_result.info)}
+#     else:
+#         return {"task_id": task_id, "status": task_result.state}
 
 app_socket = socketio.ASGIApp(
     sio,

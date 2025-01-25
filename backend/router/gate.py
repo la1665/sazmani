@@ -7,7 +7,7 @@ from schema.user import UserInDB
 from schema.camera import CameraPagination
 from schema.gate import GateCreate, GateUpdate, GateInDB, GatePagination
 from crud.gate import GateOperation
-from utils.middlewwares import check_password_changed
+from utils.middlewares import check_password_changed
 
 
 gate_router = APIRouter(

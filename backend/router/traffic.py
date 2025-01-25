@@ -16,7 +16,7 @@ from schema.traffic import TrafficCreate, TrafficInDB, TrafficPagination
 from crud.traffic import TrafficOperation
 from schema.user import UserInDB
 from auth.authorization import get_admin_user, get_admin_or_staff_user, get_self_or_admin_or_staff_user, get_self_or_admin_user, get_self_user_only
-from utils.middlewwares import check_password_changed
+from utils.middlewares import check_password_changed
 
 
 BASE_UPLOAD_DIR = Path("uploads")

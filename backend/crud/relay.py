@@ -29,6 +29,7 @@ class RelayOperation(CrudOperation):
         # Create the relay
         try:
             new_relay = DBRelay(
+                name=relay.name,
                 ip=relay.ip,
                 port=relay.port,
                 protocol=relay.protocol,

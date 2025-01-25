@@ -9,7 +9,7 @@ from crud.relay import RelayOperation
 from schema.user import UserInDB
 from schema.relay import RelayCreate, RelayPagination, RelayUpdate, RelayInDB
 from schema.key import KeyPagination
-from utils.middlewwares import check_password_changed
+from utils.middlewares import check_password_changed
 
 
 relay_router = APIRouter(

@@ -6,7 +6,7 @@ from database.engine import get_db
 from crud.status import StatusOperation
 from schema.status import StatusCreate, StatusUpdate, StatusInDB, StatusPagination
 from auth.authorization import get_admin_or_staff_user
-from utils.middlewwares import check_password_changed
+from utils.middlewares import check_password_changed
 from schema.user import UserInDB
 
 
@@ -46,7 +46,7 @@ async def update_status(
     updated_status = await status_crud.update_status(status_id, status)
     return updated_status
 
-@status_router.delete("/{status_id}", response_model=StatusInDB)
+@status_router.delete("/{status_id}", status_code=status.HTTP_200_OK)
 async def delete_status(
     status_id: int,
     db: AsyncSession = Depends(get_db),

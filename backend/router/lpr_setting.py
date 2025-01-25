@@ -6,7 +6,7 @@ from database.engine import get_db
 from schema.user import UserInDB
 from schema.lpr_setting import LprSettingCreate, LprSettingUpdate, LprSettingInDB, LprSettingPagination
 from crud.lpr_setting import LprSettingOperation
-from utils.middlewwares import check_password_changed
+from utils.middlewares import check_password_changed
 
 
 

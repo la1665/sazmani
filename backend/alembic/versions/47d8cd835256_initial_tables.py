@@ -76,38 +76,8 @@ def upgrade() -> None:
     op.create_index(op.f('ix_lprs_id'), 'lprs', ['id'], unique=False)
     op.create_index(op.f('ix_lprs_ip'), 'lprs', ['ip'], unique=False)
     op.create_index(op.f('ix_lprs_name'), 'lprs', ['name'], unique=True)
-    op.create_table('records',
-    sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('title', sa.String(), nullable=False),
-    sa.Column('camera_id', sa.Integer(), nullable=False),
-    sa.Column('timestamp', sa.DateTime(), nullable=False),
-    sa.Column('video_url', sa.String(), nullable=False),
-    sa.PrimaryKeyConstraint('id')
-    )
-    op.create_index(op.f('ix_records_id'), 'records', ['id'], unique=False)
-    op.create_table('traffic',
-    sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('prefix_2', sa.String(), nullable=False),
-    sa.Column('alpha', sa.String(), nullable=False),
-    sa.Column('mid_3', sa.String(), nullable=False),
-    sa.Column('suffix_2', sa.String(), nullable=False),
-    sa.Column('plate_number', sa.String(), nullable=False),
-    sa.Column('timestamp', sa.DateTime(), nullable=True),
-    sa.Column('ocr_accuracy', sa.Float(), nullable=True),
-    sa.Column('vision_speed', sa.Float(), nullable=True),
-    sa.Column('camera_name', sa.String(), nullable=True),
-    sa.Column('gate_name', sa.String(), nullable=True),
-    sa.Column('plate_image_path', sa.String(), nullable=True),
-    sa.Column('full_image_path', sa.String(), nullable=True),
-    sa.PrimaryKeyConstraint('id')
-    )
-    op.create_index(op.f('ix_traffic_camera_name'), 'traffic', ['camera_name'], unique=False)
-    op.create_index(op.f('ix_traffic_gate_name'), 'traffic', ['gate_name'], unique=False)
-    op.create_index(op.f('ix_traffic_id'), 'traffic', ['id'], unique=False)
-    op.create_index(op.f('ix_traffic_plate_number'), 'traffic', ['plate_number'], unique=False)
     op.create_table('users',
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
-    # sa.Column('username', sa.String(length=255), nullable=False),
     sa.Column('email', sa.String(length=255), nullable=True),
     sa.Column('first_name', sa.String(length=255), nullable=True),
     sa.Column('last_name', sa.String(length=255), nullable=True),
@@ -136,8 +106,7 @@ def upgrade() -> None:
     sa.Column('created_at', sa.DateTime(), nullable=False),
     sa.Column('updated_at', sa.DateTime(), nullable=False),
     sa.Column('is_active', sa.Boolean(), nullable=False),
-    sa.Column('building_id', sa.Integer(), nullable=False),
-    sa.ForeignKeyConstraint(['building_id'], ['buildings.id'], ),
+    sa.Column('building_id', sa.Integer(), sa.ForeignKey("buildings.id", ondelete="CASCADE"), nullable=False),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_index(op.f('ix_gates_id'), 'gates', ['id'], unique=False)
@@ -151,7 +120,7 @@ def upgrade() -> None:
     sa.Column('is_active', sa.Boolean(), nullable=False),
     sa.Column('created_at', sa.DateTime(), nullable=False),
     sa.Column('updated_at', sa.DateTime(), nullable=False),
-    sa.Column('lpr_id', sa.Integer(), nullable=False),
+    sa.Column('lpr_id', sa.Integer(),  sa.ForeignKey("lprs.id", ondelete="CASCADE"), nullable=False),
     sa.Column('default_setting_id', sa.Integer(), nullable=True),
     sa.ForeignKeyConstraint(['default_setting_id'], ['lpr_settings.id'], ),
     sa.ForeignKeyConstraint(['lpr_id'], ['lprs.id'], ),
@@ -160,7 +129,7 @@ def upgrade() -> None:
     op.create_index(op.f('ix_lpr_setting_instances_id'), 'lpr_setting_instances', ['id'], unique=False)
     op.create_index(op.f('ix_lpr_setting_instances_name'), 'lpr_setting_instances', ['name'], unique=False)
     op.create_table('vehicles',
-    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
     sa.Column('plate_number', sa.String(), nullable=True),
     sa.Column('vehicle_class', sa.String(), nullable=True),
     sa.Column('vehicle_type', sa.String(), nullable=True),
@@ -169,8 +138,7 @@ def upgrade() -> None:
     sa.Column('is_active', sa.Boolean(), nullable=False),
     sa.Column('created_at', sa.DateTime(), nullable=False),
     sa.Column('updated_at', sa.DateTime(), nullable=False),
-    sa.Column('owner_id', sa.Integer(), nullable=True),
-    sa.ForeignKeyConstraint(['owner_id'], ['users.id'], ),
+    sa.Column('owner_id', sa.Integer(), sa.ForeignKey("users.id"), nullable=True),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_index(op.f('ix_vehicles_id'), 'vehicles', ['id'], unique=False)
@@ -192,61 +160,54 @@ def upgrade() -> None:
     )
     op.create_index(op.f('ix_cameras_id'), 'cameras', ['id'], unique=False)
     op.create_index(op.f('ix_cameras_name'), 'cameras', ['name'], unique=True)
-    op.create_table('traffic_vehicle_association',
-    sa.Column('traffic_id', sa.Integer(), nullable=False),
-    sa.Column('vehicle_id', sa.Integer(), nullable=False),
-    sa.ForeignKeyConstraint(['traffic_id'], ['traffic.id'], ),
-    sa.ForeignKeyConstraint(['vehicle_id'], ['vehicles.id'], ),
-    sa.PrimaryKeyConstraint('traffic_id', 'vehicle_id')
-    )
-    # Create `relays` table
-    op.create_table(
-        'relays',
-        sa.Column('id', sa.Integer(), primary_key=True, autoincrement=True),
-        sa.Column('ip', sa.String(), nullable=False, index=True),
-        sa.Column('port', sa.Integer(), nullable=False),
-        sa.Column('protocol', sa.Enum('TCP', 'UDP', 'API', name='protocolenum'), nullable=False, default="API"),
-        sa.Column('description', sa.Text(), nullable=True),
-        sa.Column('number_of_keys', sa.Integer(), nullable=False),
-        sa.Column('is_active', sa.Boolean(), nullable=False, default=True),
-        sa.Column('created_at', sa.DateTime(), nullable=False, server_default=sa.func.now()),
-        sa.Column('updated_at', sa.DateTime(), nullable=False, server_default=sa.func.now(), onupdate=sa.func.now()),
-        sa.Column('gate_id', sa.Integer(), nullable=False),
-        sa.ForeignKeyConstraint(['gate_id'], ['gates.id']),
-        sa.PrimaryKeyConstraint('id')
-    )
-    op.create_index(op.f('ix_relays_id'), 'relays', ['id'], unique=False)
-    # Create `statuses` table
-    op.create_table(
-        'statuses',
-        sa.Column('id', sa.Integer(), primary_key=True, autoincrement=True),
-        sa.Column('name', sa.String(), nullable=False, unique=True),
-        sa.Column('description', sa.String(), nullable=True),
-        sa.Column('is_active', sa.Boolean(), nullable=False, default=True),
-        sa.Column('created_at', sa.DateTime(), nullable=False, server_default=sa.func.now()),
-        sa.Column('updated_at', sa.DateTime(), nullable=False, server_default=sa.func.now(), onupdate=sa.func.now()),
-        sa.PrimaryKeyConstraint('id')
-    )
-    op.create_index(op.f('ix_statuses_id'), 'statuses', ['id'], unique=False)
-    # Create `keys` table
-    op.create_table(
-        'keys',
-        sa.Column('id', sa.Integer(), primary_key=True, autoincrement=True),
-        sa.Column('key_number', sa.Integer(), nullable=False),
-        sa.Column('duration', sa.Integer(), nullable=True),
-        sa.Column('description', sa.String(), nullable=True),
-        sa.Column('is_active', sa.Boolean(), nullable=False, default=True),
-        sa.Column('created_at', sa.DateTime(), nullable=False, server_default=sa.func.now()),
-        sa.Column('updated_at', sa.DateTime(), nullable=False, server_default=sa.func.now(), onupdate=sa.func.now()),
-        sa.Column('relay_id', sa.Integer(), nullable=False),
-        sa.Column('camera_id', sa.Integer(), nullable=True),
-        sa.Column('status_id', sa.Integer(), nullable=False),
-        sa.ForeignKeyConstraint(['relay_id'], ['relays.id']),
-        sa.ForeignKeyConstraint(['camera_id'], ['cameras.id']),
-        sa.ForeignKeyConstraint(['status_id'], ['statuses.id']),
-        sa.PrimaryKeyConstraint('id')
-    )
-    op.create_index(op.f('ix_keys_id'), 'keys', ['id'], unique=False)
+    # # Create `relays` table
+    # op.create_table(
+    #     'relays',
+    #     sa.Column('id', sa.Integer(), primary_key=True, autoincrement=True),
+    #     sa.Column('ip', sa.String(), nullable=False, index=True),
+    #     sa.Column('port', sa.Integer(), nullable=False),
+    #     sa.Column('protocol', sa.Enum('TCP', 'UDP', 'API', name='protocolenum'), nullable=False, default="API"),
+    #     sa.Column('description', sa.Text(), nullable=True),
+    #     sa.Column('number_of_keys', sa.Integer(), nullable=False),
+    #     sa.Column('is_active', sa.Boolean(), nullable=False, default=True),
+    #     sa.Column('created_at', sa.DateTime(), nullable=False, server_default=sa.func.now()),
+    #     sa.Column('updated_at', sa.DateTime(), nullable=False, server_default=sa.func.now(), onupdate=sa.func.now()),
+    #     sa.Column('gate_id', sa.Integer(), nullable=False),
+    #     sa.ForeignKeyConstraint(['gate_id'], ['gates.id']),
+    #     sa.PrimaryKeyConstraint('id')
+    # )
+    # op.create_index(op.f('ix_relays_id'), 'relays', ['id'], unique=False)
+    # # Create `statuses` table
+    # op.create_table(
+    #     'statuses',
+    #     sa.Column('id', sa.Integer(), primary_key=True, autoincrement=True),
+    #     sa.Column('name', sa.String(), nullable=False, unique=True),
+    #     sa.Column('description', sa.String(), nullable=True),
+    #     sa.Column('is_active', sa.Boolean(), nullable=False, default=True),
+    #     sa.Column('created_at', sa.DateTime(), nullable=False, server_default=sa.func.now()),
+    #     sa.Column('updated_at', sa.DateTime(), nullable=False, server_default=sa.func.now(), onupdate=sa.func.now()),
+    #     sa.PrimaryKeyConstraint('id')
+    # )
+    # op.create_index(op.f('ix_statuses_id'), 'statuses', ['id'], unique=False)
+    # # Create `keys` table
+    # op.create_table(
+    #     'keys',
+    #     sa.Column('id', sa.Integer(), primary_key=True, autoincrement=True),
+    #     sa.Column('key_number', sa.Integer(), nullable=False),
+    #     sa.Column('duration', sa.Integer(), nullable=True),
+    #     sa.Column('description', sa.String(), nullable=True),
+    #     sa.Column('is_active', sa.Boolean(), nullable=False, default=True),
+    #     sa.Column('created_at', sa.DateTime(), nullable=False, server_default=sa.func.now()),
+    #     sa.Column('updated_at', sa.DateTime(), nullable=False, server_default=sa.func.now(), onupdate=sa.func.now()),
+    #     sa.Column('relay_id', sa.Integer(), nullable=False),
+    #     sa.Column('camera_id', sa.Integer(), nullable=True),
+    #     sa.Column('status_id', sa.Integer(), nullable=False),
+    #     sa.ForeignKeyConstraint(['relay_id'], ['relays.id']),
+    #     sa.ForeignKeyConstraint(['camera_id'], ['cameras.id']),
+    #     sa.ForeignKeyConstraint(['status_id'], ['statuses.id']),
+    #     sa.PrimaryKeyConstraint('id')
+    # )
+    # op.create_index(op.f('ix_keys_id'), 'keys', ['id'], unique=False)
     op.create_table('camera_lpr_association',
     sa.Column('camera_id', sa.Integer(), nullable=False),
     sa.Column('lpr_id', sa.Integer(), nullable=False),
@@ -271,25 +232,61 @@ def upgrade() -> None:
     )
     op.create_index(op.f('ix_camera_setting_instances_id'), 'camera_setting_instances', ['id'], unique=False)
     op.create_index(op.f('ix_camera_setting_instances_name'), 'camera_setting_instances', ['name'], unique=False)
-
-    op.create_table('viewer_gate_access',
-    sa.Column('user_id', sa.Integer(), nullable=False),
-    sa.Column('gate_id', sa.Integer(), nullable=False),
-    sa.ForeignKeyConstraint(['user_id'], ['users.id'], ondelete='CASCADE'),
-    sa.ForeignKeyConstraint(['gate_id'], ['gates.id'], ondelete='CASCADE'),
-    sa.PrimaryKeyConstraint('user_id', 'gate_id')
+    op.create_table('records',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('title', sa.String(), nullable=False),
+    sa.Column('camera_id', sa.Integer(), nullable=False),
+    sa.Column('timestamp', sa.DateTime(), nullable=False),
+    sa.Column('video_url', sa.String(), nullable=False),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_index(op.f('ix_records_id'), 'records', ['id'], unique=False)
+    op.create_table('traffic',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('prefix_2', sa.String(), nullable=False),
+    sa.Column('alpha', sa.String(), nullable=False),
+    sa.Column('mid_3', sa.String(), nullable=False),
+    sa.Column('suffix_2', sa.String(), nullable=False),
+    sa.Column('plate_number', sa.String(), nullable=False),
+    sa.Column('timestamp', sa.DateTime(), nullable=True),
+    sa.Column('ocr_accuracy', sa.Float(), nullable=True),
+    sa.Column('vision_speed', sa.Float(), nullable=True),
+    sa.Column('camera_id', sa.Integer(), nullable=True),
+    sa.Column('gate_id', sa.Integer(), nullable=True),
+    sa.Column('plate_image_path', sa.String(), nullable=True),
+    sa.Column('full_image_path', sa.String(), nullable=True),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_index(op.f('ix_traffic_camera_id'), 'traffic', ['camera_id'], unique=False)
+    op.create_index(op.f('ix_traffic_gate_id'), 'traffic', ['gate_id'], unique=False)
+    op.create_index(op.f('ix_traffic_id'), 'traffic', ['id'], unique=False)
+    op.create_index(op.f('ix_traffic_plate_number'), 'traffic', ['plate_number'], unique=False)
+    op.create_table('traffic_vehicle_association',
+    sa.Column('traffic_id', sa.Integer(), nullable=False),
+    sa.Column('vehicle_id', sa.Integer(), nullable=False),
+    sa.ForeignKeyConstraint(['traffic_id'], ['traffic.id'], ),
+    sa.ForeignKeyConstraint(['vehicle_id'], ['vehicles.id'], ),
+    sa.PrimaryKeyConstraint('traffic_id', 'vehicle_id')
+    )
+    op.create_table(
+        'viewer_gate_access',
+        sa.Column('user_id', sa.Integer(), nullable=False),
+        sa.Column('gate_id', sa.Integer(), nullable=False),
+        sa.ForeignKeyConstraint(['user_id'], ['users.id'], ondelete='CASCADE'),
+        sa.ForeignKeyConstraint(['gate_id'], ['gates.id'], ondelete='CASCADE'),
+        sa.PrimaryKeyConstraint('user_id', 'gate_id'),
     )
     # ### end Alembic commands ###
 
 
 def downgrade() -> None:
     # ### commands auto generated by Alembic - please adjust! ###
-    op.drop_index(op.f('ix_keys_id'), table_name='keys')
-    op.drop_table('keys')
-    op.drop_index(op.f('ix_statuses_id'), table_name='statuses')
-    op.drop_table('statuses')
-    op.drop_index(op.f('ix_relays_id'), table_name='relays')
-    op.drop_table('relays')
+    # op.drop_index(op.f('ix_keys_id'), table_name='keys')
+    # op.drop_table('keys')
+    # op.drop_index(op.f('ix_statuses_id'), table_name='statuses')
+    # op.drop_table('statuses')
+    # op.drop_index(op.f('ix_relays_id'), table_name='relays')
+    # op.drop_table('relays')
     op.drop_table('viewer_gate_access')
     op.drop_index(op.f('ix_camera_setting_instances_name'), table_name='camera_setting_instances')
     op.drop_index(op.f('ix_camera_setting_instances_id'), table_name='camera_setting_instances')
@@ -308,9 +305,6 @@ def downgrade() -> None:
     op.drop_index(op.f('ix_gates_name'), table_name='gates')
     op.drop_index(op.f('ix_gates_id'), table_name='gates')
     op.drop_table('gates')
-    op.drop_index(op.f('ix_users_username'), table_name='users')
-    op.drop_index(op.f('ix_users_id'), table_name='users')
-    op.drop_table('users')
     op.drop_index(op.f('ix_traffic_plate_number'), table_name='traffic')
     op.drop_index(op.f('ix_traffic_id'), table_name='traffic')
     op.drop_index(op.f('ix_traffic_gate_id'), table_name='traffic')
@@ -331,4 +325,7 @@ def downgrade() -> None:
     op.drop_index(op.f('ix_buildings_name'), table_name='buildings')
     op.drop_index(op.f('ix_buildings_id'), table_name='buildings')
     op.drop_table('buildings')
+    op.drop_index(op.f('ix_users_username'), table_name='users')
+    op.drop_index(op.f('ix_users_id'), table_name='users')
+    op.drop_table('users')
     # ### end Alembic commands ###

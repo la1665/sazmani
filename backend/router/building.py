@@ -7,7 +7,7 @@ from schema.gate import GatePagination
 from schema.user import UserInDB
 from schema.building import BuildingCreate, BuildingUpdate, BuildingInDB, BuildingPagination
 from crud.building import BuildingOperation
-from utils.middlewwares import check_password_changed
+from utils.middlewares import check_password_changed
 
 
 building_router = APIRouter(

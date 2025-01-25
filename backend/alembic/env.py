@@ -22,7 +22,6 @@ sys.path.insert(0, os.path.abspath(PROJECT_ROOT))
 
 from database.engine import Base
 from models.user import DBUser
-from models.traffic import DBTraffic
 from models.vehicle import DBVehicle
 from models.building import DBBuilding
 from models.gate import DBGate
@@ -31,7 +30,8 @@ from models.lpr_setting import DBLprSetting, DBLprSettingInstance
 from models.camera import DBCamera
 from models.lpr import DBLpr
 from models.record import DBRecord
-from models.association import camera_lpr_association, traffic_vehicle_association
+from models.traffic import DBTraffic
+from models.association import viewer_gate_access
 
 
 target_metadata = Base.metadata

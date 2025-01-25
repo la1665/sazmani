@@ -43,13 +43,14 @@ class TrafficOperation(CrudOperation):
             plate_image_path = None
             if traffic.plate_image_path:
                 try:
-                    # Decode the base64 image and save it to the file system
-                    image_bytes = base64.b64decode(traffic.plate_image_path)
-                    image_name = f"{traffic.plate_number}_{traffic.timestamp.isoformat().replace(':', '-')}.jpg"
-                    image_path = BASE_UPLOAD_DIR / image_name
-                    with open(image_path, "wb") as img_file:
-                        img_file.write(image_bytes)
-                    plate_image_path = str(image_path)
+                    plate_image_path = traffic.plate_image_path
+                    ## Decode the base64 image and save it to the file system
+                    # image_bytes = base64.b64decode(traffic.plate_image_path)
+                    # image_name = f"{traffic.plate_number}_{traffic.timestamp.isoformat().replace(':', '-')}.jpg"
+                    # image_path = BASE_UPLOAD_DIR / image_name
+                    # with open(image_path, "wb") as img_file:
+                    #     img_file.write(image_bytes)
+                    # plate_image_path = str(image_path)
                 except Exception as e:
                     raise HTTPException(
                         status_code=status.HTTP_400_BAD_REQUEST,
@@ -58,13 +59,14 @@ class TrafficOperation(CrudOperation):
             full_image_path = None
             if traffic.full_image_path:
                 try:
-                    # Decode the base64 image and save it to the file system
-                    image_bytes = base64.b64decode(traffic.full_image_path)
-                    image_name = f"{traffic.plate_number}_{traffic.timestamp.isoformat().replace(':', '-')}.jpg"
-                    image_path = TRAFFIC_UPLOAD_DIR / image_name
-                    with open(image_path, "wb") as img_file:
-                        img_file.write(image_bytes)
-                    full_image_path = str(image_path)
+                    full_image_path = traffic.full_image_path
+                    # # Decode the base64 image and save it to the file system
+                    # image_bytes = base64.b64decode(traffic.full_image_path)
+                    # image_name = f"{traffic.plate_number}_{traffic.timestamp.isoformat().replace(':', '-')}.jpg"
+                    # image_path = TRAFFIC_UPLOAD_DIR / image_name
+                    # with open(image_path, "wb") as img_file:
+                    #     img_file.write(image_bytes)
+                    # full_image_path = str(image_path)
                 except Exception as e:
                     raise HTTPException(
                         status_code=status.HTTP_400_BAD_REQUEST,
