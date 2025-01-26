@@ -12,16 +12,19 @@ from crud.user import UserOperation
 from models.vehicle import DBVehicle
 from schema.vehicle import VehicleCreate
 from validator import image_validator
+from image_storage.storage_management import StorageFactory
+
 
 BASE_UPLOAD_DIR = Path("uploads/car_images")  # Base directory for storing images
 # Ensure the directory exists
 BASE_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 
-
 class VehicleOperation(CrudOperation):
     def __init__(self, db_session: AsyncSession) -> None:
         super().__init__(db_session, DBVehicle)
+        self.image_type = "car_images"
+        self.storage = StorageFactory.get_instance()
 
     async def get_vehicles_by_user(self, user_id: int, page: int = 1, page_size: int = 10):
         """
@@ -96,20 +99,15 @@ class VehicleOperation(CrudOperation):
         image_validator.validate_image_content_type(car_image.content_type)
         image_validator.validate_image_size(car_image)
 
-        # Generate a unique filename
-        unique_filename = f"{vehicle.plate_number}_{vehicle.id}_{car_image.filename}"
-        file_path = BASE_UPLOAD_DIR / unique_filename
-
-        # Save the file locally
         try:
-            with open(file_path, "wb") as f:
-                file_data = await car_image.read()
-                f.write(file_data)
+            #Use ImageStorage instead of manual file handling
+            saved_path = await self.storage.save_image(
+                image_type=self.image_type,  # Match your corrected IMAGE_TYPES
+                image_input=car_image
+            )
 
-            # Update the car's image path
-            vehicle.car_image = str(file_path)
-            vehicle.car_image_url = str(file_path)
-            # Save changes to the database
+            # Update user model
+            vehicle.car_image = saved_path
             self.db_session.add(vehicle)
             await self.db_session.commit()
             await self.db_session.refresh(vehicle)

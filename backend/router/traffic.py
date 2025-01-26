@@ -80,13 +80,11 @@ async def get_one_traffic_data(
 
     # Modify plate image URLs for display in the response
     traffic.plate_image_url = None
-    if traffic.plate_image_path:
-        filename = Path(traffic.plate_image_path).name
-        traffic.plate_image_url = f"{nginx_base_url}/uploads/plate_images/{filename}"
+    if traffic.plate_image:
+        traffic.plate_image_url = f"{nginx_base_url}{traffic.plate_image}"
     traffic.full_image_url = None
-    if traffic.full_image_path:
-        filename = Path(traffic.full_image_path).name
-        traffic.full_image_url = f"{nginx_base_url}/uploads/traffic_images/{filename}"
+    if traffic.full_image:
+        traffic.full_image_url = f"{nginx_base_url}{traffic.full_image}"
 
     return traffic
 
@@ -102,7 +100,6 @@ async def get_traffic_data(
     alpha: str = Query(None, description="Alphabet character in plate number"),
     mid_3: str = Query(None, description="Three middle digits in plate number"),
     suffix_2: str = Query(None, description="Last two digits in plate number"),
-    # plate_number: str = Query(None, description="Filter by partial or exact plate number"),
     start_date: datetime = Query(None, description="Filter records from this date (ISO format)"),
     end_date: datetime = Query(None, description="Filter records up to this date (ISO format)"),
     db: AsyncSession = Depends(get_db),
@@ -122,7 +119,7 @@ async def get_traffic_data(
     # Extract the base URL and normalize it to include port 8000
     raw_base_url = str(request.base_url).rstrip("/")
     base_url_without_port = raw_base_url.split("//")[1].split(":")[0]
-    nginx_base_url = f"{proto}://{base_url_without_port}:8000"
+    nginx_base_url = f"{proto}://{base_url_without_port}:8000/"
 
     traffic_op = TrafficOperation(db)
     paginated_result = await traffic_op.get_all_traffics(
@@ -134,7 +131,6 @@ async def get_traffic_data(
         alpha=alpha,
         mid_3=mid_3,
         suffix_2=suffix_2,
-        # plate_number=plate_number,
         start_date=start_date,
         end_date=end_date
     )
@@ -145,13 +141,11 @@ async def get_traffic_data(
     # Modify plate image URLs for display in the response
     for traffic in paginated_result["items"]:
         traffic.plate_image_url = None
-        if traffic.plate_image_path:
-            filename = Path(traffic.plate_image_path).name
-            traffic.plate_image_url = f"{nginx_base_url}/uploads/plate_images/{filename}"
+        if traffic.plate_image:
+            traffic.plate_image_url = f"{nginx_base_url}{traffic.plate_image}"
         traffic.full_image_url = None
-        if traffic.full_image_path:
-            filename = Path(traffic.full_image_path).name
-            traffic.full_image_url = f"{nginx_base_url}/uploads/traffic_images/{filename}"
+        if traffic.full_image:
+            traffic.full_image_url = f"{nginx_base_url}{traffic.full_image}"
 
     # Generate export link
     export_link = (

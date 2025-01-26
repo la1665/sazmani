@@ -17,12 +17,12 @@ from sqlalchemy.future import select
 
 
 from settings import settings
-# from database.engine import async_session
 from database.engine import nats_session
 from crud.traffic import TrafficOperation
 from schema.traffic import TrafficCreate
 from models.record import DBRecord
 from models.lpr import DBLpr
+from image_storage.storage_management import StorageFactory
 
 
 # Get the root directory of the project
@@ -371,14 +371,12 @@ async def handle_plates_data(msg: Msg, nats_client: NATS) -> None:
         await msg.ack()
         print("JetStream plates_data received and processed.")
 
-
-
         message_body = message["messageBody"]
         camera_id = message_body.get("camera_id")
         timestamp = message_body.get("timestamp")
         full_image_array = message_body.get("full_image")
         cars = message_body.get("cars", [])
-        #timestamp_dt = datetime.datetime.strptime(timestamp, "%Y-%m-%dT%H-%M-%S")
+        upload_timestamp = datetime.datetime.strptime(timestamp, '%Y-%m-%dT%H:%M:%S.%fZ')
 
         # save_plates_data_to_db.delay(camera_id, timestamp, cars)
         try:
@@ -389,13 +387,6 @@ async def handle_plates_data(msg: Msg, nats_client: NATS) -> None:
                 vision_speed = car.get("vision_speed", 0.0)
                 plate_image_array = car.get("plate", {}).get("plate_image", "")
 
-                full_image_name = f"{plate_number}_{uuid.uuid4()}.jpg"
-                full_image_path = get_image_path(camera_id, datetime.datetime.now(), full_image_name, TRAFFIC_UPLOAD_DIR)
-                save_image_opencv(full_image_array, full_image_path)
-                plate_image_name = f"{plate_number}_{uuid.uuid4()}.jpg"
-                plate_image_path = get_image_path(camera_id, datetime.datetime.now(), plate_image_name, IMAGE_UPLOAD_DIR)
-                save_image_opencv(plate_image_array, plate_image_path)
-
                 # Split the plate_number into components
                 match = re.match(r"(\d{2})([a-zA-Z])(\d{3})(\d{2})", plate_number)
                 if not match:
@@ -403,6 +394,10 @@ async def handle_plates_data(msg: Msg, nats_client: NATS) -> None:
                     continue
 
                 prefix_2, alpha, mid_3, suffix_2 = match.groups()
+
+                stroragefactory = StorageFactory.get_instance(settings.STORAGE_BACKEND)
+                plate_image = await stroragefactory.save_image("plate_images", plate_image_array, camera_id=camera_id,timestamp=upload_timestamp)
+                full_image = await stroragefactory.save_image("traffic_images", full_image_array, camera_id=camera_id,timestamp=upload_timestamp)
 
                 # Create a TrafficCreate object
                 traffic_data = TrafficCreate(
@@ -413,8 +408,8 @@ async def handle_plates_data(msg: Msg, nats_client: NATS) -> None:
                     plate_number=plate_number,
                     ocr_accuracy=ocr_accuracy,
                     vision_speed=vision_speed,
-                    plate_image_path=str(plate_image_path),
-                    full_image_path=str(full_image_path),
+                    plate_image=str(plate_image),
+                    full_image=str(full_image),
                     timestamp=timestamp,
                     camera_id=camera_id,
                 )

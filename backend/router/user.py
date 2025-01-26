@@ -53,8 +53,7 @@ async def api_get_user(
 
     # Generate the profile image URL if the image exists
     if user.profile_image:
-        filename = Path(user.profile_image).name
-        user.profile_image_url = f"{request.base_url}uploads/profile_images/{filename}"
+        user.profile_image_url = f"{request.base_url}{user.profile_image}"
 
     return user
 
@@ -74,8 +73,7 @@ async def api_get_all_users(
     result = await user_op.get_all_objects(page, page_size)
     for user in result["items"]:
         if user.profile_image:
-            filename = Path(user.profile_image).name
-            user.profile_image_url = f"{request.base_url}uploads/profile_images/{filename}"
+            user.profile_image_url = f"{request.base_url}{user.profile_image}"
 
     return result
 

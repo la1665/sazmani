@@ -17,13 +17,5 @@ class DBTraffic(Base):
     vision_speed = Column(Float, nullable=True)
     camera_name = Column(String, index=True)
     gate_name = Column(String, index=True)
-    plate_image_path = Column(String, nullable=True)
-    full_image_path = Column(String, nullable=True)
-    # gate_id = Column(Integer, ForeignKey("gates.id"), nullable=False)
-    # camera_id = Column(Integer, ForeignKey("cameras.id"), nullable=False)
-
-    # vehicles = relationship(
-    #     "DBVehicle",
-    #     secondary="traffic_vehicle_association",
-    #     back_populates="traffic_events"
-    # )
+    plate_image = Column(String, nullable=True)
+    full_image = Column(String, nullable=True)

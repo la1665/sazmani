@@ -13,7 +13,7 @@ from models.user import DBUser, UserType
 from models.gate import DBGate
 from schema.user import UserUpdate, UserCreate, PasswordUpdate, SelfUserUpdate
 from validator import image_validator
-# from utils.minio_utils import upload_profile_image
+from image_storage.storage_management import StorageFactory
 
 
 BASE_UPLOAD_DIR = Path("uploads/profile_images")  # Base directory for storing images
@@ -24,6 +24,8 @@ BASE_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 class UserOperation(CrudOperation):
     def __init__(self, db_session: AsyncSession) -> None:
         super().__init__(db_session, DBUser)
+        self.image_type = "profile_images"
+        self.storage = StorageFactory.get_instance()
 
     async def get_user_personal_number(self, personal_number: str):
         query = await self.db_session.execute(select(self.db_table).filter(self.db_table.personal_number == personal_number))
@@ -136,24 +138,20 @@ class UserOperation(CrudOperation):
         image_validator.validate_image_content_type(profile_image.content_type)
         image_validator.validate_image_size(profile_image)
 
-        # Generate a unique filename
-        unique_filename = f"{user.personal_number}_{user.id}_{profile_image.filename}"
-        file_path = BASE_UPLOAD_DIR / unique_filename
-
-        # Save the file locally
         try:
-            with open(file_path, "wb") as f:
-                file_data = await profile_image.read()
-                f.write(file_data)
+            #Use ImageStorage instead of manual file handling
+            saved_path = await self.storage.save_image(
+                image_type=self.image_type,  # Match your corrected IMAGE_TYPES
+                image_input=profile_image
+            )
 
-            # Update the user's profile image path
-            user.profile_image = str(file_path)
-            user.profile_image_url = str(file_path)
-            # Save changes to the database
+            # Update user model
+            user.profile_image = saved_path
             self.db_session.add(user)
             await self.db_session.commit()
             await self.db_session.refresh(user)
             return user
+
 
         except SQLAlchemyError as error:
             await self.db_session.rollback()

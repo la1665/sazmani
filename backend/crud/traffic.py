@@ -34,39 +34,23 @@ class TrafficOperation(CrudOperation):
         return object
 
     async def create_traffic(self, traffic: TrafficCreate):
-        # db_vehicle = await VehicleOperation(self.db_session).get_one_vehcile_plate(traffic.plate_number)
-        # db_user = await UserOperation(self.db_session).get_one_object_id(db_vehicle.owner_id) if db_vehicle and db_vehicle.owner_id else None
         db_camera = await CameraOperation(self.db_session).get_one_object_id(traffic.camera_id)
         db_gate = await GateOperation(self.db_session).get_one_object_id(db_camera.gate_id)
 
         try:
-            plate_image_path = None
-            if traffic.plate_image_path:
+            plate_image = None
+            if traffic.plate_image:
                 try:
-                    plate_image_path = traffic.plate_image_path
-                    ## Decode the base64 image and save it to the file system
-                    # image_bytes = base64.b64decode(traffic.plate_image_path)
-                    # image_name = f"{traffic.plate_number}_{traffic.timestamp.isoformat().replace(':', '-')}.jpg"
-                    # image_path = BASE_UPLOAD_DIR / image_name
-                    # with open(image_path, "wb") as img_file:
-                    #     img_file.write(image_bytes)
-                    # plate_image_path = str(image_path)
+                    plate_image = traffic.plate_image
                 except Exception as e:
                     raise HTTPException(
                         status_code=status.HTTP_400_BAD_REQUEST,
                         detail=f"Failed to save plate image: {e}"
                     )
-            full_image_path = None
-            if traffic.full_image_path:
+            full_image = None
+            if traffic.full_image:
                 try:
-                    full_image_path = traffic.full_image_path
-                    # # Decode the base64 image and save it to the file system
-                    # image_bytes = base64.b64decode(traffic.full_image_path)
-                    # image_name = f"{traffic.plate_number}_{traffic.timestamp.isoformat().replace(':', '-')}.jpg"
-                    # image_path = TRAFFIC_UPLOAD_DIR / image_name
-                    # with open(image_path, "wb") as img_file:
-                    #     img_file.write(image_bytes)
-                    # full_image_path = str(image_path)
+                    full_image = traffic.full_image
                 except Exception as e:
                     raise HTTPException(
                         status_code=status.HTTP_400_BAD_REQUEST,
@@ -81,8 +65,8 @@ class TrafficOperation(CrudOperation):
                 plate_number = traffic.plate_number,
                 ocr_accuracy = traffic.ocr_accuracy,
                 vision_speed = traffic.vision_speed,
-                plate_image_path=plate_image_path,
-                full_image_path=full_image_path,
+                plate_image=plate_image,
+                full_image=full_image,
                 timestamp = naive_timestamp,
                 camera_name = db_camera.name,
                 gate_name = db_gate.name,
@@ -99,12 +83,6 @@ class TrafficOperation(CrudOperation):
             await self.db_session.close()
 
 
-        # return TrafficInDB(
-        #     **new_traffic.__dict__,
-        #     owner_username=db_user.username if db_user else None,
-        #     owner_first_name=db_user.first_name if db_user else None,
-        #     owner_last_name=db_user.last_name if db_user else None,
-        # )
 
     async def get_all_traffics(
         self,
@@ -116,7 +94,6 @@ class TrafficOperation(CrudOperation):
         alpha: str = None,
         mid_3: str = None,
         suffix_2: str = None,
-        # plate_number: str = None,
         start_date: datetime = None,
         end_date: datetime = None,
     ):

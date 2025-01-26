@@ -13,35 +13,11 @@ from utils.middlewares import check_password_changed
 from models.user import UserType
 
 
-# Create an APIRouter for user-related routes
-# vehicle_router = APIRouter(
-#     prefix="/v1/vehicles",
-#     tags=["vehicles"],
-# )
 vehicle_router = APIRouter(
     prefix="/v1",
     tags=["vehicles"],
 )
 
-# @vehicle_router.get("/vehicles", response_model=VehiclePagination, status_code=status.HTTP_200_OK, dependencies=[Depends(check_password_changed)])
-# async def api_get_all_vehicles(
-#     request: Request,
-#     page: int=1,
-#     page_size: int=10,
-#     db: AsyncSession=Depends(get_db),
-#     current_user: UserInDB=Depends(get_admin_or_staff_user)
-# ):
-#     """
-#     Retrieve all vehicles with pagination.
-#     Accessible by: Admin, Staff.
-#     """
-#     vehicle_op = VehicleOperation(db)
-#     result = await vehicle_op.get_all_objects(page, page_size)
-#     for vehicle in result["items"]:
-#         if vehicle.car_image:
-#             filename = Path(vehicle.car_image).name
-#             vehicle.car_image_url = f"{request.base_url}uploads/car_images/{filename}"
-#     return result
 
 @vehicle_router.post("/users/{user_id}/vehicles", response_model=VehicleInDB, status_code=status.HTTP_201_CREATED, dependencies=[Depends(check_password_changed)])
 async def api_create_vehicle(
@@ -92,8 +68,7 @@ async def api_get_user_all_vehicles(
 
     for vehicle in result["items"]:
         if vehicle.car_image:
-            filename = Path(vehicle.car_image).name
-            vehicle.car_image_url = f"{request.base_url}uploads/car_images/{filename}"
+            vehicle.car_image_url = f"{request.base_url}{vehicle.car_image}"
     return result
 
 
@@ -119,8 +94,7 @@ async def api_get_vehicle(
             detail="Permission denied: You cannot view this resource.",
         )
     if vehicle.car_image:
-        filename = Path(vehicle.car_image).name
-        vehicle.car_image_url = f"{request.base_url}uploads/car_images/{filename}"
+        vehicle.car_image_url = f"{request.base_url}{vehicle.car_image}"
 
     return vehicle
 
@@ -146,12 +120,6 @@ async def api_delete_vehicle(
     Delete a vehicle by ID.
     """
     vehicle_op = VehicleOperation(db)
-    # vehicle = await vehicle_op.get_one_object_id(vehicle_id)
-    # if current_user.user_type not in [UserType.ADMIN, UserType.STAFF] and vehicle.owner_id != current_user.id:
-    #     raise HTTPException(
-    #         status_code=status.HTTP_403_FORBIDDEN,
-    #         detail="Permission denied: You cannot delete this resource.",
-    #     )
     return await vehicle_op.delete_object(vehicle_id)
 
 

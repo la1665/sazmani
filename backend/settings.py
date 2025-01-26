@@ -38,7 +38,11 @@ class Settings(BaseSettings):
     NAT_SERVER: str
     TLS_HOSTNAME: str
     BASE_UPLOAD_DIR: str
-    # BASE_UPLOAD_DIR: str="uploads"
+    STORAGE_BACKEND: str
+    MINIO_BUCKET_PREFIX: str
+    IMAGE_TYPES: str
+    HIGH_VOLUME_IMAGE_TYPES: str
+    IMAGE_NAME_PREFIX: str
 
 
     class Config:
