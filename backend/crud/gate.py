@@ -9,8 +9,8 @@ from crud.base import CrudOperation
 from crud.building import BuildingOperation
 from models.gate import DBGate
 from models.camera import DBCamera
-from schema.gate import GateUpdate, GateCreate
-
+from schema.gate import GateUpdate, GateCreate, GateMeilisearch
+from search_service.search_config import gate_search
 
 
 
@@ -24,7 +24,7 @@ class GateOperation(CrudOperation):
             raise HTTPException(status.HTTP_400_BAD_REQUEST, "gate already exists.")
         db_building = await BuildingOperation(self.db_session).get_one_object_id(gate.building_id)
         try:
-            new_gate = DBGate(
+            new_gate = self.db_table(
                 name=gate.name,
                 gate_type=gate.gate_type,
                 description=gate.description,
@@ -33,6 +33,16 @@ class GateOperation(CrudOperation):
             self.db_session.add(new_gate)
             await self.db_session.commit()
             await self.db_session.refresh(new_gate)
+            meilisearch_gate = GateMeilisearch(
+                    id=new_gate.id,
+                    name=new_gate.name,
+                    description=new_gate.description,
+                    gate_type=new_gate.gate_type,
+                    is_active=new_gate.is_active,
+                    created_at=new_gate.created_at.isoformat(),
+                    updated_at=new_gate.updated_at.isoformat(),
+                )
+            await gate_search.sync_document(meilisearch_gate)
             return new_gate
         except SQLAlchemyError as error:
             await self.db_session.rollback()

@@ -4,7 +4,7 @@ from database.engine import Base
 
 
 class DBTraffic(Base):
-    __tablename__ = "traffic"
+    __tablename__ = "traffics"
 
     id = Column(Integer, primary_key=True, index=True)
     prefix_2 = Column(String(2), nullable=False)

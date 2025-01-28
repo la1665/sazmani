@@ -11,9 +11,10 @@ from auth.auth import get_password_hash
 from crud.base import CrudOperation
 from models.user import DBUser, UserType
 from models.gate import DBGate
-from schema.user import UserUpdate, UserCreate, PasswordUpdate, SelfUserUpdate
+from schema.user import UserMeilisearch, UserUpdate, UserCreate, PasswordUpdate, SelfUserUpdate
 from validator import image_validator
 from image_storage.storage_management import StorageFactory
+from search_service.search_config import user_search
 
 
 BASE_UPLOAD_DIR = Path("uploads/profile_images")  # Base directory for storing images
@@ -67,6 +68,20 @@ class UserOperation(CrudOperation):
             self.db_session.add(new_user)
             await self.db_session.commit()
             await self.db_session.refresh(new_user)
+            meilisearch_data = UserMeilisearch(
+                    id=new_user.id,
+                    personal_number=new_user.personal_number,
+                    national_id=new_user.national_id,
+                    first_name=new_user.first_name,
+                    last_name=new_user.last_name,
+                    email=new_user.email,
+                    phone_number=new_user.phone_number,
+                    user_type=new_user.user_type.value,  # Convert enum to string
+                    is_active=new_user.is_active,
+                    created_at=new_user.created_at.isoformat(),
+                    updated_at=new_user.updated_at.isoformat(),
+                )
+            await user_search.sync_document(meilisearch_data)
             return new_user
 
         except SQLAlchemyError as error:
@@ -85,6 +100,20 @@ class UserOperation(CrudOperation):
             self.db_session.add(db_user)
             await self.db_session.commit()
             await self.db_session.refresh(db_user)
+            meilisearch_data = UserMeilisearch(
+                id=db_user.id,
+                personal_number=db_user.personal_number,
+                national_id=db_user.national_id,
+                first_name=db_user.first_name,
+                last_name=db_user.last_name,
+                email=db_user.email,
+                phone_number=db_user.phone_number,
+                user_type=db_user.user_type.value,  # Convert enum to string
+                is_active=db_user.is_active,
+                created_at=db_user.created_at.isoformat(),
+                updated_at=db_user.updated_at.isoformat(),
+            )
+            await user_search.sync_document(meilisearch_data)
             return db_user
         except SQLAlchemyError as error:
             await self.db_session.rollback()

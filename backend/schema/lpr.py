@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from datetime import datetime
 from typing import Optional, List
 
@@ -35,6 +35,22 @@ class LprUpdate(BaseModel):
     longitude: Optional[str] = None
     is_active: Optional[bool] = None
 
+
+class LprMeilisearch(BaseModel):
+    id: int
+    name: str
+    ip: str
+    description: Optional[str] = None
+    is_active: bool
+    created_at: datetime  # Needed for sorting
+    updated_at: datetime  # Needed for sorting
+
+    model_config = ConfigDict(
+            from_attributes=True,
+            json_encoders={
+                datetime: lambda v: v.isoformat()  # Handle datetime serialization
+            }
+        )
 
 
 class LprInDB(LprBase):

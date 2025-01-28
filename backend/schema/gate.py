@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from typing import Optional, List
 from datetime import datetime
 
@@ -25,6 +25,23 @@ class GateUpdate(BaseModel):
     is_active: Optional[bool] = None
 
 
+class GateMeilisearch(BaseModel):
+    id: int
+    name: str
+    description: Optional[str] = None
+    gate_type: str
+    is_active: bool
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = ConfigDict(
+            from_attributes=True,
+            json_encoders={
+                datetime: lambda v: v.isoformat()
+            }
+        )
+
+
 class GateInDB(GateBase):
     id: int
     building_id: int
@@ -32,10 +49,13 @@ class GateInDB(GateBase):
     updated_at: datetime
     is_active: bool
     cameras: List["CameraSummery"] = []
-    # lprs: List["LprSummary"] = []
 
     class Config:
         from_attributes = True
+        json_encoders = {
+            GateType: lambda v: v.value
+        }
+        use_enum_values = True
 
 
 GatePagination = Pagination[GateInDB]

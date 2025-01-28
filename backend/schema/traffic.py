@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from datetime import datetime
 from typing import Optional
 
@@ -24,6 +24,26 @@ class TrafficCreate(TrafficBase):
 
 class TrafficUpdate(BaseModel):
     pass
+
+
+
+class TrafficMeilisearch(BaseModel):
+    id: int
+    prefix_2: str
+    alpha: str
+    mid_3: str
+    suffix_2: str
+    plate_number: str
+    gate_name: Optional[str] = None
+    camera_name: Optional[str] = None
+    timestamp: datetime
+
+    model_config = ConfigDict(
+            from_attributes=True,
+            json_encoders={
+                datetime: lambda v: v.isoformat()
+            }
+        )
 
 
 class TrafficInDB(TrafficBase):

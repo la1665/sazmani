@@ -11,9 +11,9 @@ from crud.gate import GateOperation
 from crud.lpr import LprOperation
 from models.camera_setting import DBCameraSetting, DBCameraSettingInstance
 from models.camera import DBCamera
-from schema.camera import CameraUpdate, CameraCreate
+from schema.camera import CameraUpdate, CameraCreate, CameraMeilisearch
 from schema.camera_setting import CameraSettingInstanceUpdate, CameraSettingInstanceCreate
-
+from search_service.search_config import camera_search
 
 
 class CameraOperation(CrudOperation):
@@ -62,7 +62,7 @@ class CameraOperation(CrudOperation):
         db_gate = await GateOperation(self.db_session).get_one_object_id(camera.gate_id)
         db_lpr = await LprOperation(self.db_session).get_one_object_id(camera.lpr_id)
         try:
-            new_camera = DBCamera(
+            new_camera = self.db_table(
                 name=camera.name,
                 latitude=camera.latitude,
                 longitude=camera.longitude,
@@ -90,7 +90,15 @@ class CameraOperation(CrudOperation):
 
             await self.db_session.commit()
             await self.db_session.refresh(new_camera)
-
+            meilisearch_camera = CameraMeilisearch(
+                    id=new_camera.id,
+                    name=new_camera.name,
+                    description=new_camera.description,
+                    is_active=new_camera.is_active,
+                    created_at=new_camera.created_at.isoformat(),
+                    updated_at=new_camera.updated_at.isoformat(),
+                )
+            await camera_search.sync_document(meilisearch_camera)
             return new_camera
         except SQLAlchemyError as error:
             await self.db_session.rollback()

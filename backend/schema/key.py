@@ -48,9 +48,12 @@ class KeyInDB(KeyBase):
     camera: Optional[CameraSummery] = None
     status: Optional[StatusSummery] = None
 
-
     class Config:
         from_attributes = True
+        json_encoders = {
+            ProtocolEnum: lambda v: v.value  # Serialize enum to string
+        }
+        use_enum_values = True  # Add this line
 
 
 KeyPagination = Pagination[KeyInDB]

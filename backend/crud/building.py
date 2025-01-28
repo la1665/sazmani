@@ -1,4 +1,5 @@
 import math
+from types import BuiltinMethodType
 from fastapi import HTTPException, status
 from sqlalchemy import func
 from sqlalchemy.exc import SQLAlchemyError
@@ -8,8 +9,8 @@ from sqlalchemy.future import select
 from crud.base import CrudOperation
 from models.building import DBBuilding
 from models.gate import DBGate
-from schema.building import BuildingUpdate, BuildingCreate
-
+from schema.building import BuildingMeilisearch, BuildingUpdate, BuildingCreate
+from search_service.search_config import building_search
 
 
 
@@ -23,7 +24,7 @@ class BuildingOperation(CrudOperation):
             raise HTTPException(status.HTTP_400_BAD_REQUEST, "building already exists.")
 
         try:
-            new_building = DBBuilding(
+            new_building = self.db_table(
                 name=building.name,
                 latitude=building.latitude,
                 longitude=building.longitude,
@@ -32,6 +33,15 @@ class BuildingOperation(CrudOperation):
             self.db_session.add(new_building)
             await self.db_session.commit()
             await self.db_session.refresh(new_building)
+            meilisearch_building = BuildingMeilisearch(
+                    id=new_building.id,
+                    name=new_building.name,
+                    description=new_building.description,
+                    is_active=new_building.is_active,
+                    created_at=new_building.created_at.isoformat(),
+                    updated_at=new_building.updated_at.isoformat(),
+                )
+            await building_search.sync_document(meilisearch_building)
             return new_building
         except SQLAlchemyError as error:
             await self.db_session.rollback()
@@ -48,6 +58,7 @@ class BuildingOperation(CrudOperation):
             self.db_session.add(db_building)
             await self.db_session.commit()
             await self.db_session.refresh(db_building)
+            db_building = await building_search.sync_document(BuildingInDB.from_orm(db_building))
             return db_building
         except SQLAlchemyError as error:
             await self.db_session.rollback()

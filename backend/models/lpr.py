@@ -3,7 +3,6 @@ from sqlalchemy import Boolean, Integer, String, DateTime
 from sqlalchemy.orm import relationship
 
 from database.engine import Base
-from models.association import camera_lpr_association
 
 class DBLpr(Base):
     __tablename__ = 'lprs'
@@ -27,9 +26,3 @@ class DBLpr(Base):
             lazy="selectin",
             cascade="all, delete-orphan"
         )
-    # cameras = relationship(
-    #     "DBCamera",
-    #     secondary=camera_lpr_association,
-    #     back_populates="lprs",
-    #     lazy="selectin"
-    # )

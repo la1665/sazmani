@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, EmailStr
+from pydantic import BaseModel, Field, EmailStr, ConfigDict
 from datetime import datetime
 from typing import Optional, List
 
@@ -58,6 +58,28 @@ class PasswordUpdate(BaseModel):
     password_changed: Optional[bool] = None
 
 
+
+class UserMeilisearch(BaseModel):
+    id: int
+    personal_number: str
+    national_id: str
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    phone_number: Optional[str] = None
+    email: Optional[str] = None
+    user_type: str
+    is_active: bool
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = ConfigDict(
+            from_attributes=True,
+            json_encoders={
+                datetime: lambda v: v.isoformat()
+            }
+        )
+
+
 class UserInDB(UserBase):
     id: int
     profile_image: Optional[str] = None
@@ -71,6 +93,10 @@ class UserInDB(UserBase):
 
     class Config:
         from_attributes = True
+        json_encoders = {
+            UserType: lambda v: v.value  # Serialize enum to string
+        }
+        use_enum_values = True  # Add this line
 
 
 UserPagination = Pagination[UserInDB]

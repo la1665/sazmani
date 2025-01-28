@@ -1,5 +1,5 @@
 from datetime import datetime
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import Optional, List
 
 from schema.pagination import Pagination
@@ -16,7 +16,7 @@ class CameraBase(BaseModel):
     name: str
     latitude: str
     longitude: str
-    description: str
+    description: Optional[str] = None
 
 
 class CameraCreate(CameraBase):
@@ -33,6 +33,22 @@ class CameraUpdate(BaseModel):
     lpr_id: Optional[int] = None
     is_active: Optional[bool] = None
 
+
+
+class CameraMeilisearch(BaseModel):
+    id: int
+    name: str
+    description: Optional[str] = None
+    is_active: bool
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = ConfigDict(
+            from_attributes=True,
+            json_encoders={
+                datetime: lambda v: v.isoformat()
+            }
+        )
 
 class CameraInDB(CameraBase):
     id: int

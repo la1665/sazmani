@@ -39,6 +39,11 @@ class CameraSettingInDB(CameraSettingBase):
 
     class Config:
         from_attributes = True
+        json_encoders = {
+            SettingType: lambda v: v.value
+        }
+        use_enum_values = True
+
 
 
 

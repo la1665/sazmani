@@ -10,10 +10,9 @@ from crud.base import CrudOperation
 from models.lpr_setting import DBLprSetting, DBLprSettingInstance
 from models.camera import DBCamera
 from models.lpr import DBLpr
-from schema.lpr import LprUpdate, LprCreate
+from schema.lpr import LprUpdate, LprCreate, LprMeilisearch
 from schema.lpr_setting import LprSettingInstanceCreate, LprSettingInstanceUpdate
-# from tcp.tcp_manager import add_connection, update_connection, remove_connection
-
+from search_service.search_config import lpr_search
 
 class LprOperation(CrudOperation):
     def __init__(self, db_session: AsyncSession) -> None:
@@ -25,7 +24,7 @@ class LprOperation(CrudOperation):
             raise HTTPException(status.HTTP_400_BAD_REQUEST, "lpr already exists.")
 
         try:
-            new_lpr = DBLpr(
+            new_lpr = self.db_table(
                 name=lpr.name,
                 ip=lpr.ip,
                 port=lpr.port,
@@ -55,7 +54,16 @@ class LprOperation(CrudOperation):
             await self.db_session.commit()
             await self.db_session.refresh(new_lpr)
 
-
+            meilisearch_lpr = LprMeilisearch(
+                    id=new_lpr.id,
+                    name=new_lpr.name,
+                    ip=new_lpr.ip,
+                    description=new_lpr.description,
+                    is_active=new_lpr.is_active,
+                    created_at=new_lpr.created_at.isoformat(),
+                    updated_at=new_lpr.updated_at.isoformat(),
+                )
+            await lpr_search.sync_document(meilisearch_lpr)
             return new_lpr
         except SQLAlchemyError as error:
             await self.db_session.rollback()

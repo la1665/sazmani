@@ -43,6 +43,10 @@ class Settings(BaseSettings):
     IMAGE_TYPES: str
     HIGH_VOLUME_IMAGE_TYPES: str
     IMAGE_NAME_PREFIX: str
+    MEILI_URL: str
+    MEILI_MASTER_KEY: str
+    REDIS_URL: str
+    CACHE_TTL: int
 
 
     class Config:

@@ -39,6 +39,10 @@ class LprSettingInDB(LprSettingBase):
 
     class Config:
         from_attributes = True
+        json_encoders = {
+            LprSettingType: lambda v: v.value  # Serialize enum to string
+        }
+        use_enum_values = True  # Add this line
 
 
 class LprSettingInstanceBase(BaseModel):
