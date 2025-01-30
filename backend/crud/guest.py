@@ -37,6 +37,13 @@ class GuestOperation(CrudOperation):
         #     raise HTTPException(status.HTTP_400_BAD_REQUEST, "guest with this cridentials already exists.")
 
         # Fetch accessible gates
+
+        accessible_query = await self.db_session.execute(
+            select(DBUser).where(DBUser.id == guest.inviting_user_id))
+        db_user = accessible_query.scalar_one_or_none()
+        if not db_user:
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, "guest must have an invitation from an active user.")
+
         db_accessible_gates = []
         if guest.gate_ids:
             accessible_query = await self.db_session.execute(
@@ -52,6 +59,7 @@ class GuestOperation(CrudOperation):
                 start_date=guest.start_date,
                 end_date=guest.end_date,
                 user_type="guest",
+                inviting_user=db_user,
                 gates=db_accessible_gates,
             )
 

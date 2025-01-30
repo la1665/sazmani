@@ -51,8 +51,8 @@ class DBGuest(Base):
     user_type = Column(String(11), default="guest", nullable=False)
 
     # Access period for the guest
-    start_date = Column(DateTime, default=func.now(), nullable=False)
-    end_date = Column(DateTime, nullable=False)
+    start_date = Column(DateTime(timezone=True), default=func.now(), nullable=False)
+    end_date = Column(DateTime(timezone=True), nullable=False)
 
     is_active = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime, nullable=False, default=func.now())
