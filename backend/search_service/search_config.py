@@ -71,7 +71,8 @@ traffic_search = BaseSearchService[TrafficMeilisearch](
         "suffix_2",
         "plate_number",
         "gate_name",
-        "camera_name"
+        "camera_name",
+        "access_granted"
     ],
     filterable_attributes=["gate_name", "camera_name"],
     sortable_attributes=["timestamp"]

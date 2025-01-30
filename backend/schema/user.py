@@ -27,6 +27,7 @@ class UserBase(BaseModel):
 
 class UserCreate(UserBase):
     gate_ids: List[int] = []
+    accessible_gate_ids: List[int] = []
 
 
 class SelfUserUpdate(BaseModel):
@@ -90,6 +91,7 @@ class UserInDB(UserBase):
     is_active: bool
     vehicles: List[VehicleSummary] = []
     gates: List[GateBase] = []
+    accessible_gates: List[GateBase] = []
 
     class Config:
         from_attributes = True

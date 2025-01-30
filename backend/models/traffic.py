@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Integer, Float,ForeignKey, DateTime, func
+from sqlalchemy import Column, String, Integer, Float,ForeignKey, DateTime, Boolean, func
 
 from database.engine import Base
 
@@ -19,3 +19,4 @@ class DBTraffic(Base):
     gate_name = Column(String, index=True)
     plate_image = Column(String, nullable=True)
     full_image = Column(String, nullable=True)
+    access_granted = Column(Boolean, nullable=True)

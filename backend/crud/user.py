@@ -50,6 +50,14 @@ class UserOperation(CrudOperation):
             )
             db_gates = gates_query.scalars().all()
 
+        # Fetch accessible gates
+        db_accessible_gates = []
+        if user.accessible_gate_ids:
+            accessible_query = await self.db_session.execute(
+                select(DBGate).where(DBGate.id.in_(user.accessible_gate_ids))
+            )
+            db_accessible_gates = accessible_query.scalars().all()
+
         try:
             new_user = self.db_table(
                 personal_number=user.personal_number,
@@ -62,6 +70,7 @@ class UserOperation(CrudOperation):
                 user_type=user.user_type,
                 hashed_password=hashed_password,
                 gates=db_gates,
+                accessible_gates=db_accessible_gates,
                 password_changed=(user.user_type == UserType.ADMIN),
             )
 

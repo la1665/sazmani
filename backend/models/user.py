@@ -4,7 +4,7 @@ from sqlalchemy.orm import relationship
 from enum import Enum
 
 from database.engine import Base
-from models.association import viewer_gate_access
+from models.association import viewer_gate_access, user_gate_access
 
 class UserType(Enum):
     ADMIN = "admin"
@@ -37,3 +37,4 @@ class DBUser(Base):
 
     vehicles = relationship("DBVehicle", back_populates="owner", cascade="all, delete-orphan", lazy="selectin")
     gates = relationship("DBGate", secondary=viewer_gate_access, back_populates="users", lazy="selectin")
+    accessible_gates = relationship("DBGate", secondary=user_gate_access, back_populates="permitted_users", lazy="selectin")

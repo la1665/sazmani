@@ -37,6 +37,7 @@ class TrafficMeilisearch(BaseModel):
     gate_name: Optional[str] = None
     camera_name: Optional[str] = None
     timestamp: datetime
+    access_granted: bool
 
     model_config = ConfigDict(
             from_attributes=True,
@@ -52,6 +53,8 @@ class TrafficInDB(TrafficBase):
     camera_name: str
     plate_image_url: Optional[str] = None
     full_image_url: Optional[str] = None
+    access_granted: bool
+
 
     class Config:
         from_attributes = True

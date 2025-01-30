@@ -7,6 +7,13 @@ from schema.pagination import Pagination
 from schema.lpr import CameraSummery
 
 
+
+class PermittedUsersSummery(BaseModel):
+    id: int
+    personal_number: str
+    first_name: str
+    last_name: str
+
 class GateBase(BaseModel):
     name: str
     description: Optional[str] = None
@@ -49,6 +56,7 @@ class GateInDB(GateBase):
     updated_at: datetime
     is_active: bool
     cameras: List["CameraSummery"] = []
+    permitted_users: List["PermittedUsersSummery"] = []
 
     class Config:
         from_attributes = True

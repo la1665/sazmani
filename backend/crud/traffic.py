@@ -15,6 +15,7 @@ from crud.camera import CameraOperation
 from models.traffic import DBTraffic
 from schema.traffic import TrafficCreate, TrafficMeilisearch
 from search_service.search_config import traffic_search
+from utils.vehicle_access import VehicleAccessChecker
 
 BASE_UPLOAD_DIR = Path("uploads/plate_images")
 BASE_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
@@ -57,6 +58,13 @@ class TrafficOperation(CrudOperation):
                         detail=f"Failed to save traffic image: {e}"
                     )
             naive_timestamp = traffic.timestamp.replace(tzinfo=None)
+
+            # Check if the vehicle's owner has access to the gate
+            access_checker = VehicleAccessChecker(self.db_session)
+            is_accessible, db_vehicle, db_owner = await access_checker.is_vehicle_allowed(
+                traffic.plate_number, db_gate.id
+            )
+
             new_traffic = self.db_table(
                 prefix_2 = traffic.prefix_2,
                 alpha = traffic.alpha,
@@ -70,6 +78,7 @@ class TrafficOperation(CrudOperation):
                 timestamp = naive_timestamp,
                 camera_name = db_camera.name,
                 gate_name = db_gate.name,
+                access_granted = is_accessible,
             )
             self.db_session.add(new_traffic)
             await self.db_session.commit()
@@ -84,6 +93,7 @@ class TrafficOperation(CrudOperation):
                 gate_name=new_traffic.gate_name,
                 camera_name=new_traffic.camera_name,  # Convert enum to string
                 timestamp=new_traffic.timestamp,
+                access_granted=new_traffic.access_granted,
             )
             await traffic_search.sync_document(meilisearch_traffic)
             return new_traffic
