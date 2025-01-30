@@ -10,6 +10,7 @@ from socket_managment_nats_ import sio
 from router.base import include_router
 from router.auth import auth_router
 from router.user import user_router
+from router.guest import guest_router
 from router.building import building_router
 from router.gate import gate_router
 from router.camera import camera_router
@@ -61,6 +62,7 @@ app.mount("/uploads/zips", StaticFiles(directory=str(ZIP_FILE_DIR)), name="zips"
 
 include_router(app, auth_router)
 include_router(app, user_router)
+include_router(app, guest_router)
 include_router(app, building_router)
 include_router(app, gate_router)
 include_router(app, camera_router)

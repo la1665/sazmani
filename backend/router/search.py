@@ -3,7 +3,7 @@ from typing import Optional
 from urllib.parse import unquote
 
 from auth.authorization import get_current_active_user
-from search_service.search_config import user_search, building_search, gate_search, camera_search, lpr_search, traffic_search
+from search_service.search_config import user_search, guest_search, building_search, gate_search, camera_search, lpr_search, traffic_search
 from schema.user import UserInDB
 from schema.building import BuildingInDB
 from schema.gate import GateInDB
@@ -28,6 +28,7 @@ async def model_search(
 
     service_map = {
         "users": user_search,
+        "guests": guest_search,
         "buildings": building_search,
         "gates": gate_search,
         "cameras": camera_search,

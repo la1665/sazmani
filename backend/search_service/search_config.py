@@ -1,6 +1,7 @@
 from search_service.search import BaseSearchService
 
 from schema.user import  UserMeilisearch
+from schema.guest import GuestMeilisearch
 from schema.building import BuildingMeilisearch
 from schema.gate import GateMeilisearch
 from schema.camera import CameraMeilisearch
@@ -19,6 +20,21 @@ user_search = BaseSearchService[UserMeilisearch](
         "national_id",
         "email",
         "phone_number"
+    ],
+    filterable_attributes=["user_type", "is_active", "created_at", "updated_at"],
+    sortable_attributes=["created_at", "updated_at"]
+)
+
+# Guest Search Service
+guest_search = BaseSearchService[GuestMeilisearch](
+    index_name="guests",
+    schema_model=GuestMeilisearch,
+    searchable_attributes=[
+        "personal_number",
+        "national_id",
+        "first_name",
+        "last_name",
+        "phone_number",
     ],
     filterable_attributes=["user_type", "is_active", "created_at", "updated_at"],
     sortable_attributes=["created_at", "updated_at"]

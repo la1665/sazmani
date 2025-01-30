@@ -10,6 +10,13 @@ user_gate_access = Table(
     Column('gate_id', Integer, ForeignKey('gates.id', ondelete="CASCADE"), primary_key=True),
 )
 
+guest_gate_access = Table(
+    'guest_gate_access',
+    Base.metadata,
+    Column('guest_id', Integer, ForeignKey('guests.id', ondelete="CASCADE"), primary_key=True),
+    Column('gate_id', Integer, ForeignKey('gates.id', ondelete="CASCADE"), primary_key=True),
+)
+
 viewer_gate_access = Table(
     'viewer_gate_access',
     Base.metadata,

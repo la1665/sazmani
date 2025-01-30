@@ -2,6 +2,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from crud.vehicle import VehicleOperation
 from crud.user import UserOperation
+from crud.guest import GuestOperation
 from crud.gate import GateOperation
 
 
@@ -25,14 +26,21 @@ class VehicleAccessChecker:
 
         # Step 2: Find Owner of the Vehicle
         db_owner = await UserOperation(self.db_session).get_one_object_id(db_vehicle.owner_id)
-        if not db_owner:
+        if db_owner:
+            accessible_gate_ids = {gate.id for gate in db_owner.accessible_gates}
+            is_accessible = gate_id in accessible_gate_ids
+
+            print(f"[INFO] Vehicle {plate_number} access at gate {gate_id}: {'ALLOWED' if is_accessible else 'DENIED'}")
+            return is_accessible, db_vehicle, db_owner
+
+        db_guest = await GuestOperation(self.db_session).get_one_object_id(db_vehicle.guest_id)
+        if db_guest:
+            accessible_gate_ids = {gate.id for gate in db_guest.gates}
+            is_accessible = gate_id in accessible_gate_ids
+
+            print(f"[INFO] Vehicle {plate_number} access at gate {gate_id}: {'ALLOWED' if is_accessible else 'DENIED'}")
+            return is_accessible, db_vehicle, db_owner
+
+        else:
             print(f"[WARNING] Owner for vehicle {plate_number} not found.")
             return False, db_vehicle, None
-
-        # Step 3: Check If Owner Has Access to the Gate
-        accessible_gate_ids = {gate.id for gate in db_owner.accessible_gates}
-        is_accessible = gate_id in accessible_gate_ids
-
-        print(f"[INFO] Vehicle {plate_number} access at gate {gate_id}: {'ALLOWED' if is_accessible else 'DENIED'}")
-
-        return is_accessible, db_vehicle, db_owner

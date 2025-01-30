@@ -4,7 +4,7 @@ from sqlalchemy.orm import relationship
 from enum import Enum
 
 from database.engine import Base
-from models.association import viewer_gate_access, user_gate_access
+from models.association import viewer_gate_access, user_gate_access, guest_gate_access
 from models.relay import DBRelay
 
 class GateType(Enum):
@@ -29,4 +29,5 @@ class DBGate(Base):
     cameras = relationship("DBCamera", back_populates="gate", cascade="all, delete-orphan", lazy="selectin")
     users = relationship("DBUser", secondary=viewer_gate_access, back_populates="gates")
     permitted_users = relationship("DBUser", secondary=user_gate_access, back_populates="accessible_gates", lazy="selectin")
+    guests = relationship("DBGuest", secondary=guest_gate_access, back_populates="gates", lazy="selectin")
     relays = relationship("DBRelay", back_populates="gate", lazy="selectin")
