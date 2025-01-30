@@ -6,7 +6,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.future import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from models.user import DBUser
+from models.user import DBGuest, DBUser
 from crud.base import CrudOperation
 from crud.user import UserOperation
 from models.vehicle import DBVehicle
@@ -62,23 +62,36 @@ class VehicleOperation(CrudOperation):
         db_vehicle = await self.get_one_vehcile_plate(vehicle.plate_number)
         if db_vehicle:
             raise HTTPException(status.HTTP_400_BAD_REQUEST, "Vehicle with this plate number already exists.")
-        user_id = None
+        db_user_id = None
         if vehicle.owner_id:
             user_query = await self.db_session.execute(
                 select(DBUser).where(DBUser.id == vehicle.owner_id)
             )
             db_user = user_query.scalar_one_or_none()
-            if db_user is None:
-                raise HTTPException(status.HTTP_404_NOT_FOUND, f"User with ID: {vehicle.owner_id} not found!")
-            user_id = db_user.id
-            # db_user = await UserOperation(self.db_session).get_one_object_id(vehicle.owner_id)
+            # if db_user is None:
+            #     raise HTTPException(status.HTTP_404_NOT_FOUND, f"User with ID: {vehicle.owner_id} not found!")
+            if db_user:
+                db_user_id = db_user.id
+
+        db_guest_id = None
+        if vehicle.guest_id:
+            guest_query = await self.db_session.execute(
+                select(DBGuest).where(DBGuest.id == vehicle.guest_id)
+            )
+            result = guest_query.scalar_one_or_none()
+            # if db_user is None:
+            #     raise HTTPException(status.HTTP_404_NOT_FOUND, f"User with ID: {vehicle.owner_id} not found!")
+            if result:
+                db_guest_id = result.id
+
         try:
             new_vehicle = self.db_table(
                 plate_number=vehicle.plate_number,
                 vehicle_class=vehicle.vehicle_class,
                 vehicle_type=vehicle.vehicle_type,
                 vehicle_color=vehicle.vehicle_color,
-                owner_id=user_id,
+                owner_id=db_user_id,
+                guest_id=db_guest_id,
             )
             self.db_session.add(new_vehicle)
             await self.db_session.commit()

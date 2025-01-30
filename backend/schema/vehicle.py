@@ -22,6 +22,7 @@ class VehicleBase(BaseModel):
 
 class VehicleCreate(VehicleBase):
     owner_id: Optional[int] = None
+    guest_id: Optional[int] = None
 
 
 class VehicleUpdate(BaseModel):
@@ -33,6 +34,7 @@ class VehicleInDB(VehicleBase):
     car_image: Optional[str] = None
     car_image_url: Optional[str] = None
     owner_id: Optional[int] = None
+    guest_id: Optional[int] = None
     created_at: datetime
     updated_at: datetime
     is_active: bool
