@@ -13,7 +13,7 @@ from crud.base import CrudOperation
 from crud.gate import GateOperation
 from crud.camera import CameraOperation
 from models.traffic import DBTraffic
-from schema.traffic import TrafficCreate, TrafficMeilisearch
+from schema.traffic import TrafficCreate, TrafficInDB
 from search_service.search_config import traffic_search
 from utils.vehicle_access import VehicleAccessChecker
 
@@ -25,7 +25,7 @@ TRAFFIC_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 class TrafficOperation(CrudOperation):
     def __init__(self, db_session: AsyncSession) -> None:
-        super().__init__(db_session, DBTraffic)
+        super().__init__(db_session, DBTraffic, traffic_search)
 
     async def get_one_plate_number(self, plate_number: str):
         result = await self.db_session.execute(
@@ -83,18 +83,7 @@ class TrafficOperation(CrudOperation):
             self.db_session.add(new_traffic)
             await self.db_session.commit()
             await self.db_session.refresh(new_traffic)
-            meilisearch_traffic = TrafficMeilisearch(
-                id=new_traffic.id,
-                prefix_2=new_traffic.prefix_2,
-                alpha=new_traffic.alpha,
-                mid_3=new_traffic.mid_3,
-                suffix_2=new_traffic.suffix_2,
-                plate_number=new_traffic.plate_number,
-                gate_name=new_traffic.gate_name,
-                camera_name=new_traffic.camera_name,  # Convert enum to string
-                timestamp=new_traffic.timestamp,
-                access_granted=new_traffic.access_granted,
-            )
+            meilisearch_traffic = TrafficInDB.from_orm(new_traffic)
             await traffic_search.sync_document(meilisearch_traffic)
             return new_traffic
         except SQLAlchemyError as error:

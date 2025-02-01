@@ -11,7 +11,7 @@ from auth.auth import get_password_hash
 from crud.base import CrudOperation
 from models.user import DBUser, DBGuest
 from models.gate import DBGate
-from schema.guest import GuestMeilisearch, GuestUpdate, GuestCreate
+from schema.guest import GuestInDB, GuestUpdate, GuestCreate
 from search_service.search_config import guest_search
 
 
@@ -19,7 +19,7 @@ from search_service.search_config import guest_search
 
 class GuestOperation(CrudOperation):
     def __init__(self, db_session: AsyncSession) -> None:
-        super().__init__(db_session, DBGuest)
+        super().__init__(db_session, DBGuest, guest_search)
 
     # async def get_user_personal_number(self, personal_number: str):
     #     query = await self.db_session.execute(select(self.db_table).filter(self.db_table.personal_number == personal_number))
@@ -66,18 +66,7 @@ class GuestOperation(CrudOperation):
             self.db_session.add(new_guest)
             await self.db_session.commit()
             await self.db_session.refresh(new_guest)
-            meilisearch_data = GuestMeilisearch(
-                    id=new_guest.id,
-                    first_name=new_guest.first_name,
-                    last_name=new_guest.last_name,
-                    phone_number=new_guest.phone_number,
-                    user_type=new_guest.user_type,  # Convert enum to string
-                    is_active=new_guest.is_active,
-                    created_at=new_guest.created_at.isoformat(),
-                    updated_at=new_guest.updated_at.isoformat(),
-                    start_date=new_guest.start_date.isoformat(),
-                    end_date=new_guest.end_date.isoformat(),
-                )
+            meilisearch_data = GuestInDB.from_orm(new_guest)
             await guest_search.sync_document(meilisearch_data)
             return new_guest
 
@@ -97,18 +86,7 @@ class GuestOperation(CrudOperation):
             self.db_session.add(db_guest)
             await self.db_session.commit()
             await self.db_session.refresh(db_guest)
-            meilisearch_data = GuestMeilisearch(
-                id=db_guest.id,
-                first_name=db_guest.first_name,
-                last_name=db_guest.last_name,
-                phone_number=db_guest.phone_number,
-                user_type=db_guest.user_type,  # Convert enum to string
-                is_active=db_guest.is_active,
-                created_at=db_guest.created_at.isoformat(),
-                updated_at=db_guest.updated_at.isoformat(),
-                start_date=db_guest.start_date.isoformat(),
-                end_date=db_guest.end_date.isoformat(),
-            )
+            meilisearch_data = GuestInDB.from_orm(db_guest)
             await guest_search.sync_document(meilisearch_data)
             return db_guest
         except SQLAlchemyError as error:

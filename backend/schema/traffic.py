@@ -55,7 +55,6 @@ class TrafficInDB(TrafficBase):
     full_image_url: Optional[str] = None
     access_granted: bool
 
-
     class Config:
         from_attributes = True
 

@@ -10,13 +10,13 @@ from crud.base import CrudOperation
 from models.lpr_setting import DBLprSetting, DBLprSettingInstance
 from models.camera import DBCamera
 from models.lpr import DBLpr
-from schema.lpr import LprUpdate, LprCreate, LprMeilisearch
-from schema.lpr_setting import LprSettingInstanceCreate, LprSettingInstanceUpdate
-from search_service.search_config import lpr_search
+from schema.lpr import LprUpdate, LprCreate, LprInDB
+from schema.lpr_setting import LprSettingInstanceCreate, LprSettingInstanceUpdate, LprSettingInstanceInDB
+from search_service.search_config import lpr_search, lpr_setting_search
 
 class LprOperation(CrudOperation):
     def __init__(self, db_session: AsyncSession) -> None:
-        super().__init__(db_session, DBLpr)
+        super().__init__(db_session, DBLpr, lpr_search)
 
     async def create_lpr(self, lpr:LprCreate):
         db_lpr = await self.get_one_object_name(lpr.name)
@@ -50,19 +50,14 @@ class LprOperation(CrudOperation):
                     default_setting_id=setting.id
                 )
                 self.db_session.add(setting_instance)
+                await self.db_session.flush()
+                meilisearch_setting = LprSettingInstanceInDB.from_orm(setting_instance)
+                await lpr_setting_search.sync_document(meilisearch_setting)
+
 
             await self.db_session.commit()
             await self.db_session.refresh(new_lpr)
-
-            meilisearch_lpr = LprMeilisearch(
-                    id=new_lpr.id,
-                    name=new_lpr.name,
-                    ip=new_lpr.ip,
-                    description=new_lpr.description,
-                    is_active=new_lpr.is_active,
-                    created_at=new_lpr.created_at.isoformat(),
-                    updated_at=new_lpr.updated_at.isoformat(),
-                )
+            meilisearch_lpr = LprInDB.from_orm(new_lpr)
             await lpr_search.sync_document(meilisearch_lpr)
             return new_lpr
         except SQLAlchemyError as error:
@@ -80,6 +75,8 @@ class LprOperation(CrudOperation):
             self.db_session.add(db_lpr)
             await self.db_session.commit()
             await self.db_session.refresh(db_lpr)
+            meilisearch_lpr = LprInDB.from_orm(db_lpr)
+            await lpr_search.sync_document(meilisearch_lpr)
 
             return db_lpr
         except SQLAlchemyError as error:
@@ -188,6 +185,8 @@ class LprOperation(CrudOperation):
             self.db_session.add(setting_instance)
             await self.db_session.commit()
             await self.db_session.refresh(setting_instance)
+            meilisearch_setting = LprSettingInstanceInDB.from_orm(setting_instance)
+            await lpr_setting_search.sync_document(meilisearch_setting)
             return setting_instance
         except SQLAlchemyError as error:
             await self.db_session.rollback()
@@ -218,6 +217,8 @@ class LprOperation(CrudOperation):
                 setattr(setting_instance, key, value)
             await self.db_session.commit()
             await self.db_session.refresh(setting_instance)
+            meilisearch_setting = LprSettingInstanceInDB.from_orm(setting_instance)
+            await lpr_setting_search.sync_document(meilisearch_setting)
             return setting_instance
         except SQLAlchemyError as error:
             await self.db_session.rollback()
@@ -244,6 +245,7 @@ class LprOperation(CrudOperation):
         try:
             await self.db_session.delete(setting_instance)
             await self.db_session.commit()
+            await lpr_setting_search.delete_document(setting_id)
             return {"message": f"object {setting_instance.name} deleted successfully"}
         except SQLAlchemyError as error:
             await self.db_session.rollback()

@@ -14,7 +14,7 @@ from schema.key import KeyCreate, KeyUpdate
 
 class KeyOperation(CrudOperation):
     def __init__(self, db_session: AsyncSession):
-        super().__init__(db_session, DBRelayKey)
+        super().__init__(db_session, DBRelayKey, None)
 
     async def create_relay_key(self, relay_key: KeyCreate):
         """

@@ -13,6 +13,15 @@ class PermittedUsersSummery(BaseModel):
     personal_number: str
     first_name: str
     last_name: str
+    class Config:
+        from_attributes = True
+
+
+class GateSummmary(BaseModel):
+    name: str
+    description: str
+    class Config:
+        from_attributes = True
 
 class GateBase(BaseModel):
     name: str

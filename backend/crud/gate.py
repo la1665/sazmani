@@ -9,14 +9,14 @@ from crud.base import CrudOperation
 from crud.building import BuildingOperation
 from models.gate import DBGate
 from models.camera import DBCamera
-from schema.gate import GateUpdate, GateCreate, GateMeilisearch
+from schema.gate import GateUpdate, GateCreate, GateInDB
 from search_service.search_config import gate_search
 
 
 
 class GateOperation(CrudOperation):
     def __init__(self, db_session: AsyncSession) -> None:
-        super().__init__(db_session, DBGate)
+        super().__init__(db_session, DBGate, gate_search)
 
     async def create_gate(self, gate:GateCreate):
         db_gate = await self.get_one_object_name(gate.name)
@@ -33,15 +33,7 @@ class GateOperation(CrudOperation):
             self.db_session.add(new_gate)
             await self.db_session.commit()
             await self.db_session.refresh(new_gate)
-            meilisearch_gate = GateMeilisearch(
-                    id=new_gate.id,
-                    name=new_gate.name,
-                    description=new_gate.description,
-                    gate_type=new_gate.gate_type,
-                    is_active=new_gate.is_active,
-                    created_at=new_gate.created_at.isoformat(),
-                    updated_at=new_gate.updated_at.isoformat(),
-                )
+            meilisearch_gate = GateInDB.from_orm(new_gate)
             await gate_search.sync_document(meilisearch_gate)
             return new_gate
         except SQLAlchemyError as error:
@@ -66,6 +58,8 @@ class GateOperation(CrudOperation):
             self.db_session.add(db_gate)
             await self.db_session.commit()
             await self.db_session.refresh(db_gate)
+            meilisearch_gate = GateInDB.from_orm(db_gate)
+            await gate_search.sync_document(meilisearch_gate)
             return db_gate
         except SQLAlchemyError as error:
             await self.db_session.rollback()

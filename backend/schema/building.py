@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Optional, List
 
 from schema.pagination import Pagination
-from schema.gate import GateInDB
+from schema.gate import GateSummmary
 
 class BuildingBase(BaseModel):
     name: str
@@ -45,7 +45,7 @@ class BuildingInDB(BuildingBase):
     created_at: datetime
     updated_at: datetime
     is_active: bool
-    gates: Optional[List["GateInDB"]] = []
+    gates: Optional[List["GateSummmary"]] = []
 
     class Config:
         from_attributes = True

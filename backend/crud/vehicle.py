@@ -22,7 +22,7 @@ BASE_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 class VehicleOperation(CrudOperation):
     def __init__(self, db_session: AsyncSession) -> None:
-        super().__init__(db_session, DBVehicle)
+        super().__init__(db_session, DBVehicle, None)
         self.image_type = "car_images"
         self.storage = StorageFactory.get_instance()
 

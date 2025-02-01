@@ -11,6 +11,9 @@ class CameraSettingInstanceSummery(BaseModel):
     name: str
     is_active: bool
 
+    class Config:
+        from_attributes = True
+
 
 class CameraSettingBase(BaseModel):
     name: str

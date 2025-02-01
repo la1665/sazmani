@@ -5,11 +5,8 @@ from enum import Enum
 
 from models.relay import ProtocolEnum
 from schema.pagination import Pagination
+from schema.gate import GateSummmary
 
-
-class GateSummmary(BaseModel):
-    name: str
-    description: str
 
 class KeySummery(BaseModel):
     id: int
@@ -18,6 +15,8 @@ class KeySummery(BaseModel):
     description: Optional[str]=None
     status_id: int
     camera_id: Optional[int]=None
+    class Config:
+        from_attributes = True
 
 class RelayBase(BaseModel):
     name: str

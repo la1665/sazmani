@@ -11,14 +11,14 @@ from crud.gate import GateOperation
 from crud.lpr import LprOperation
 from models.camera_setting import DBCameraSetting, DBCameraSettingInstance
 from models.camera import DBCamera
-from schema.camera import CameraUpdate, CameraCreate, CameraMeilisearch
-from schema.camera_setting import CameraSettingInstanceUpdate, CameraSettingInstanceCreate
-from search_service.search_config import camera_search
+from schema.camera import CameraUpdate, CameraCreate, CameraInDB
+from schema.camera_setting import CameraSettingInstanceInDB, CameraSettingInstanceUpdate, CameraSettingInstanceCreate
+from search_service.search_config import camera_search, camera_setting_search
 
 
 class CameraOperation(CrudOperation):
     def __init__(self, db_session: AsyncSession) -> None:
-        super().__init__(db_session, DBCamera)
+        super().__init__(db_session, DBCamera, camera_search)
 
     async def get_objects_by_gate_ids(self, gate_ids: list[int], page: int = 1, page_size: int = 10):
         """
@@ -87,17 +87,13 @@ class CameraOperation(CrudOperation):
                     default_setting_id=setting.id
                 )
                 self.db_session.add(setting_instance)
+                await self.db_session.flush()
+                meilisearch_setting = CameraSettingInstanceInDB.from_orm(setting_instance)
+                await camera_setting_search.sync_document(meilisearch_setting)
 
             await self.db_session.commit()
             await self.db_session.refresh(new_camera)
-            meilisearch_camera = CameraMeilisearch(
-                    id=new_camera.id,
-                    name=new_camera.name,
-                    description=new_camera.description,
-                    is_active=new_camera.is_active,
-                    created_at=new_camera.created_at.isoformat(),
-                    updated_at=new_camera.updated_at.isoformat(),
-                )
+            meilisearch_camera = CameraInDB.from_orm(new_camera)
             await camera_search.sync_document(meilisearch_camera)
             return new_camera
         except SQLAlchemyError as error:
@@ -127,6 +123,8 @@ class CameraOperation(CrudOperation):
             self.db_session.add(db_camera)
             await self.db_session.commit()
             await self.db_session.refresh(db_camera)
+            meilisearch_camera = CameraInDB.from_orm(db_camera)
+            await camera_search.sync_document(meilisearch_camera)
 
             return db_camera
         except SQLAlchemyError as error:
@@ -193,6 +191,8 @@ class CameraOperation(CrudOperation):
             self.db_session.add(setting_instance)
             await self.db_session.commit()
             await self.db_session.refresh(setting_instance)
+            meilisearch_setting = CameraSettingInstanceInDB.from_orm(setting_instance)
+            await camera_setting_search.sync_document(meilisearch_setting)
             return setting_instance
         except SQLAlchemyError as error:
             await self.db_session.rollback()
@@ -223,6 +223,8 @@ class CameraOperation(CrudOperation):
                 setattr(setting_instance, key, value)
             await self.db_session.commit()
             await self.db_session.refresh(setting_instance)
+            meilisearch_setting = CameraSettingInstanceInDB.from_orm(setting_instance)
+            await camera_setting_search.sync_document(meilisearch_setting)
             return setting_instance
         except SQLAlchemyError as error:
             await self.db_session.rollback()
@@ -249,6 +251,7 @@ class CameraOperation(CrudOperation):
         try:
             await self.db_session.delete(setting_instance)
             await self.db_session.commit()
+            await camera_setting_search.delete_document(setting_id)
             return {"message": f"object {setting_instance.name} deleted successfully"}
         except SQLAlchemyError as error:
             await self.db_session.rollback()

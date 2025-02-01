@@ -12,11 +12,15 @@ class RelaySummery(BaseModel):
     name: str
     protocol: ProtocolEnum
     is_active: bool
+    class Config:
+        from_attributes = True
 
 class StatusSummery(BaseModel):
     id: int
     name: str
     is_active: bool
+    class Config:
+        from_attributes = True
 
 
 class KeyBase(BaseModel):

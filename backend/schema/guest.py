@@ -2,7 +2,7 @@ from pydantic import BaseModel, Field, EmailStr, ConfigDict
 from datetime import datetime
 from typing import Optional, List
 
-from schema.gate import GateBase
+from schema.gate import GateSummmary
 from schema.vehicle import VehicleInDB, VehiclePagination
 from schema.pagination import Pagination
 
@@ -11,6 +11,8 @@ class VehicleSummary(BaseModel):
     id: int
     plate_number: str
     is_active: bool
+    class Config:
+        from_attributes = True
 
 
 class GuestBase(BaseModel):
@@ -77,7 +79,7 @@ class GuestInDB(GuestBase):
     updated_at: datetime
     is_active: bool
     vehicles: List[VehicleSummary] = []
-    gates: List[GateBase] = []
+    gates: List[GateSummmary] = []
 
     class Config:
         from_attributes = True

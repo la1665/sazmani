@@ -9,14 +9,14 @@ from sqlalchemy.future import select
 from crud.base import CrudOperation
 from models.building import DBBuilding
 from models.gate import DBGate
-from schema.building import BuildingMeilisearch, BuildingUpdate, BuildingCreate
+from schema.building import BuildingInDB, BuildingUpdate, BuildingCreate
 from search_service.search_config import building_search
 
 
 
 class BuildingOperation(CrudOperation):
     def __init__(self, db_session: AsyncSession) -> None:
-        super().__init__(db_session, DBBuilding)
+        super().__init__(db_session, DBBuilding, building_search)
 
     async def create_building(self, building:BuildingCreate):
         db_building = await self.get_one_object_name(building.name)
@@ -33,14 +33,7 @@ class BuildingOperation(CrudOperation):
             self.db_session.add(new_building)
             await self.db_session.commit()
             await self.db_session.refresh(new_building)
-            meilisearch_building = BuildingMeilisearch(
-                    id=new_building.id,
-                    name=new_building.name,
-                    description=new_building.description,
-                    is_active=new_building.is_active,
-                    created_at=new_building.created_at.isoformat(),
-                    updated_at=new_building.updated_at.isoformat(),
-                )
+            meilisearch_building = BuildingInDB.from_orm(new_building)
             await building_search.sync_document(meilisearch_building)
             return new_building
         except SQLAlchemyError as error:
@@ -58,7 +51,8 @@ class BuildingOperation(CrudOperation):
             self.db_session.add(db_building)
             await self.db_session.commit()
             await self.db_session.refresh(db_building)
-            db_building = await building_search.sync_document(BuildingInDB.from_orm(db_building))
+            meilisearch_building = BuildingInDB.from_orm(db_building)
+            await building_search.sync_document(meilisearch_building)
             return db_building
         except SQLAlchemyError as error:
             await self.db_session.rollback()

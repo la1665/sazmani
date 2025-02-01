@@ -18,7 +18,7 @@ from schema.relay import RelayCreate, RelayUpdate
 
 class RelayOperation(CrudOperation):
     def __init__(self, db_session: AsyncSession) -> None:
-        super().__init__(db_session, DBRelay)
+        super().__init__(db_session, DBRelay, None)
 
     async def create_relay(self, relay: RelayCreate):
         # Check if the gate exists

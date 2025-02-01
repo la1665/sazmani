@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Optional, List
 
 from models.user import UserType
-from schema.gate import GateBase
+from schema.gate import GateSummmary
 from schema.vehicle import VehicleInDB, VehiclePagination
 from schema.pagination import Pagination
 
@@ -12,6 +12,8 @@ class VehicleSummary(BaseModel):
     id: int
     plate_number: str
     is_active: bool
+    class Config:
+        from_attributes = True
 
 
 class UserBase(BaseModel):
@@ -90,8 +92,8 @@ class UserInDB(UserBase):
     updated_at: datetime
     is_active: bool
     vehicles: List[VehicleSummary] = []
-    gates: List[GateBase] = []
-    accessible_gates: List[GateBase] = []
+    gates: List[GateSummmary] = []
+    accessible_gates: List[GateSummmary] = []
 
     class Config:
         from_attributes = True

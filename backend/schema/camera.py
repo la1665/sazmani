@@ -11,6 +11,8 @@ class LprSummery(BaseModel):
     id: int
     name: str
     is_active: bool
+    class Config:
+        from_attributes = True
 
 class CameraBase(BaseModel):
     name: str

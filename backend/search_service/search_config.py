@@ -1,18 +1,20 @@
 from search_service.search import BaseSearchService
 
-from schema.user import  UserMeilisearch
-from schema.guest import GuestMeilisearch
-from schema.building import BuildingMeilisearch
-from schema.gate import GateMeilisearch
-from schema.camera import CameraMeilisearch
-from schema.lpr import LprMeilisearch
-from schema.traffic import TrafficMeilisearch
+from schema.user import  UserInDB
+from schema.guest import GuestInDB
+from schema.building import BuildingInDB
+from schema.gate import GateInDB
+from schema.camera import CameraInDB
+from schema.camera_setting import CameraSettingInstanceInDB
+from schema.lpr import LprInDB
+from schema.lpr_setting import LprSettingInstanceInDB
+from schema.traffic import TrafficInDB
 
 
 # User Search Service
-user_search = BaseSearchService[UserMeilisearch](
+user_search = BaseSearchService[UserInDB](
     index_name="users",
-    schema_model=UserMeilisearch,
+    schema_model=UserInDB,
     searchable_attributes=[
         "personal_number",
         "first_name",
@@ -26,9 +28,9 @@ user_search = BaseSearchService[UserMeilisearch](
 )
 
 # Guest Search Service
-guest_search = BaseSearchService[GuestMeilisearch](
+guest_search = BaseSearchService[GuestInDB](
     index_name="guests",
-    schema_model=GuestMeilisearch,
+    schema_model=GuestInDB,
     searchable_attributes=[
         "personal_number",
         "national_id",
@@ -41,45 +43,79 @@ guest_search = BaseSearchService[GuestMeilisearch](
 )
 
 # Building Search Service
-building_search = BaseSearchService[BuildingMeilisearch](
+building_search = BaseSearchService[BuildingInDB](
     index_name="buildings",
-    schema_model=BuildingMeilisearch,
+    schema_model=BuildingInDB,
     searchable_attributes=["name", "description"],
     filterable_attributes=["is_active", "created_at", "updated_at"],
     sortable_attributes=["created_at", "updated_at"]
 )
 
 # Gate Search Service
-gate_search = BaseSearchService[GateMeilisearch](
+gate_search = BaseSearchService[GateInDB](
     index_name="gates",
-    schema_model=GateMeilisearch,
+    schema_model=GateInDB,
     searchable_attributes=["name", "description"],
     filterable_attributes=["gate_type", "is_active", "created_at", "updated_at"],
     sortable_attributes=["created_at", "updated_at"]
 )
 
 # Camera Search Service
-camera_search = BaseSearchService[CameraMeilisearch](
+camera_search = BaseSearchService[CameraInDB](
     index_name="cameras",
-    schema_model=CameraMeilisearch,
+    schema_model=CameraInDB,
     searchable_attributes=["name", "description"],
     filterable_attributes=["is_active", "created_at", "updated_at"],
     sortable_attributes=["created_at", "updated_at"]
 )
 
+# Camera Setting Instance Search Service
+camera_setting_search = BaseSearchService[CameraSettingInstanceInDB](
+    index_name="camera_settings",
+    schema_model=CameraSettingInstanceInDB,
+    searchable_attributes=[
+        "name",
+        "description",
+        "value"
+    ],
+    filterable_attributes=[
+        "setting_type", "is_active", "created_at", "updated_at", "camera_id"
+    ],
+    sortable_attributes=[
+        "created_at", "updated_at"
+    ]
+)
+
 # Lpr Search Service
-lpr_search = BaseSearchService[LprMeilisearch](
+lpr_search = BaseSearchService[LprInDB](
     index_name="lprs",
-    schema_model=LprMeilisearch,
+    schema_model=LprInDB,
     searchable_attributes=["name", "description", "ip"],
     filterable_attributes=["is_active", "created_at", "updated_at"],
     sortable_attributes=["created_at", "updated_at"]
 )
 
+# Lpr Setting Instance Search Service
+lpr_setting_search = BaseSearchService[LprSettingInstanceInDB](
+    index_name="lpr_settings",
+    schema_model=LprSettingInstanceInDB,
+    searchable_attributes=[
+        "name",
+        "description",
+        "value"
+    ],
+    filterable_attributes=[
+        "setting_type", "is_active", "created_at", "updated_at", "lpr_id"
+    ],
+    sortable_attributes=[
+        "created_at", "updated_at"
+    ]
+)
+
 # Traffic Search Service
-traffic_search = BaseSearchService[TrafficMeilisearch](
+traffic_search = BaseSearchService[TrafficInDB](
     index_name="traffics",
-    schema_model=TrafficMeilisearch,
+    schema_model=TrafficInDB,
     searchable_attributes=[
         "prefix_2",
         "alpha",

@@ -9,7 +9,7 @@ from schema.camera_setting import CameraSettingCreate, CameraSettingUpdate
 
 class CameraSettingOperation(CrudOperation):
     def __init__(self, db_session: AsyncSession) -> None:
-        super().__init__(db_session, DBCameraSetting)
+        super().__init__(db_session, DBCameraSetting, None)
 
 
 

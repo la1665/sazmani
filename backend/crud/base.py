@@ -1,15 +1,19 @@
 import math
+from typing import Optional
 from fastapi import HTTPException, status
 from sqlalchemy import func
 from sqlalchemy.future import select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from search_service.search import BaseSearchService
+
 
 class CrudOperation:
-    def __init__(self, db_session: AsyncSession, db_table) -> None:
+    def __init__(self, db_session: AsyncSession, db_table, search_service: Optional[BaseSearchService]) -> None:
         self.db_session = db_session
         self.db_table = db_table
+        self.search_service = search_service
 
     async def get_one_object_id(self, object_id: int):
         result = await self.db_session.execute(
@@ -81,6 +85,10 @@ class CrudOperation:
         try:
             await self.db_session.delete(db_object)
             await self.db_session.commit()
+            # If search service is provided, delete the document from Meilisearch
+            if self.search_service:
+                await self.search_service.delete_document(object_id)
+
             # return db_object
             return {"message": f"object {object_id} deleted successfully"}
         except SQLAlchemyError as error:

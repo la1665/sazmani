@@ -14,7 +14,7 @@ from schema.schedule_record import ScheduleRecordCreate
 
 class RecordOperation(CrudOperation):
     def __init__(self, db_session: AsyncSession):
-        super().__init__(db_session, DBRecord)
+        super().__init__(db_session, DBRecord, None)
 
     async def create_record(self, record: RecordCreate):
         try:

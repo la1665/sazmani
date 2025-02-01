@@ -47,15 +47,17 @@ class BaseSearchService(Generic[T]):
     async def sync_document(self, document: T) -> None:
         try:
             index = await self._get_index()
-            # Convert to JSON-serializable dict
-            doc_data = document.dict()
+            # # Convert to JSON-serializable dict
+            # doc_data = document.dict()
+            # # Handle enums explicitly
+            # for field, value in doc_data.items():
+            #     if isinstance(value, Enum):
+            #         doc_data[field] = value.value
+            #     elif isinstance(value, datetime):
+            #         doc_data[field] = value.isoformat()  # Convert datetime to ISO format
 
-            # Handle enums explicitly
-            for field, value in doc_data.items():
-                if isinstance(value, Enum):
-                    doc_data[field] = value.value
-                elif isinstance(value, datetime):
-                    doc_data[field] = value.isoformat()  # Convert datetime to ISO format
+            # Use jsonable_encoder to convert nested relationships into JSON-serializable format
+            doc_data = jsonable_encoder(document)
 
             index.add_documents([doc_data], primary_key='id')
             await redis_cache.invalidate_model(self.index_name)

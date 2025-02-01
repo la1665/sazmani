@@ -12,6 +12,7 @@ from search_service.search_config import (
     user_search, building_search,
     gate_search, camera_search,
     lpr_search, traffic_search,
+    camera_setting_search, lpr_setting_search,
     guest_search,
 )
 from redis_cache import redis_cache
@@ -23,7 +24,9 @@ async def initialize_search_services():
     await building_search.initialize_index()
     await gate_search.initialize_index()
     await camera_search.initialize_index()
+    await camera_setting_search.initialize_index()
     await lpr_search.initialize_index()
+    await lpr_setting_search.initialize_index()
     await traffic_search.initialize_index()
 
 

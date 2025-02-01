@@ -9,7 +9,7 @@ from schema.status import StatusCreate, StatusUpdate
 
 class StatusOperation(CrudOperation):
     def __init__(self, db_session: AsyncSession):
-        super().__init__(db_session, DBStatus)
+        super().__init__(db_session, DBStatus, None)
 
     async def create_status(self, status_create: StatusCreate):
         db_status = await self.get_one_object_name(status_create.name)
