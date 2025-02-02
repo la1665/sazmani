@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Request, HTTPException, Depends, status
 from slowapi.util import get_remote_address
-import aioredis
+from redis import asyncio as aioredis
 from dotenv import load_dotenv
 import os
 import logging
