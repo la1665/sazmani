@@ -22,15 +22,16 @@ from router.vehicle import vehicle_router
 from router.traffic import traffic_router
 from router.record import record_router
 from router.search import search_router
-from utils.middlewares import SecurityMiddleware
 
-security_middleware = SecurityMiddleware()
 
 app = FastAPI(
     title="Sazman",
     description="License Plate Reader",
     lifespan=lifespan
 )
+
+# from utils.middlewares import SecurityMiddleware
+# app.add_middleware(SecurityMiddleware)
 
 app.add_middleware(
     CORSMiddleware,
@@ -39,16 +40,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-
-@app.on_event("startup")
-async def startup_event():
-    await security_middleware.setup_redis()  # Setup Redis connection
-
-@app.middleware("http")
-async def security_middleware_handler(request, call_next):
-    return await security_middleware(request, call_next)
-
 
 # Directories for images
 BASE_UPLOAD_DIR = Path("uploads")

@@ -16,6 +16,7 @@ from search_service.search_config import (
     guest_search,
 )
 from redis_cache import redis_cache
+from utils.middlewares import security_middleware
 
 
 async def initialize_search_services():
@@ -44,6 +45,9 @@ async def lifespan(app: FastAPI):
         await create_default_admin(session)
         await initialize_defaults(session)
 
+    # Setup Redis for SecurityMiddleware
+    await security_middleware.setup_redis()
+
     # Start NATS connection
     nats_task = asyncio.create_task(connect_to_nats())
 
@@ -57,6 +61,7 @@ async def lifespan(app: FastAPI):
     finally:
         # Cleanup
         await redis_cache.redis.close()
+        await security_middleware.redis.close()
         nats_task.cancel()  # Cancel the NATS connection task
         scheduler.shutdown()
         await engine.dispose()
