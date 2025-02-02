@@ -67,10 +67,8 @@ async def model_search(
 
     return {
         "items": search_result.get("items", []),
-        "pagination": {
-            "total_items": total_items,
-            "total_pages": total_pages,
-            "current_page": page,
-            "page_size": page_size,
-        }
+        "total_records": total_items,
+        "total_pages": total_pages,
+        "current_page": page,
+        "page_size": page_size,
     }

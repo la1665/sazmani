@@ -220,6 +220,8 @@ async def handle_message(msg, emit_to_requested_sids) -> None:
             await handle_heartbeat(message, emit_to_requested_sids)
         elif message_type=="plates_data":
             await handle_socket_plate(message, emit_to_requested_sids)
+        elif message_type=="recording":
+            await handle_recording(message)
         else:
             print(f"Unknown message type: {message_type}")
 
@@ -267,7 +269,8 @@ frame_buffers = {}
 
 async def handle_recording(msg):
     try:
-        message = json.loads(msg.data.decode())
+        # message = json.loads(msg.data.decode())
+        message = json.loads(msg.decode())
     except Exception as exp:
         print(f"Extract recording message exception: {exp}")
         return

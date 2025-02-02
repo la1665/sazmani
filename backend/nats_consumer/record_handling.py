@@ -44,6 +44,7 @@ async def save_recording_metadata(title, camera_id, file_path):
 
 async def handle_recording(msg):
     try:
+        message = json.loads(msg.decode())
         message = json.loads(msg.data.decode())
         message_body = message.get("messageBody", {})
     except Exception as exp:

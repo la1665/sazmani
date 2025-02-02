@@ -3,7 +3,7 @@ from fastapi import FastAPI
 from contextlib import asynccontextmanager
 from sqlalchemy.ext.asyncio import AsyncEngine
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from router.record import process_scheduled_recordings
+from utils.recording_processor import process_scheduled_recordings
 
 from database.engine import async_session, engine, ensure_tables_exist
 from utils.db_utils import create_default_admin, initialize_defaults
@@ -58,6 +58,7 @@ async def lifespan(app: FastAPI):
         # Cleanup
         await redis_cache.redis.close()
         nats_task.cancel()  # Cancel the NATS connection task
+        scheduler.shutdown()
         await engine.dispose()
         print("[INFO] Database connection closed")
         print("[INFO] Lifespan ended")

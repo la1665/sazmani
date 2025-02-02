@@ -47,7 +47,11 @@ class Settings(BaseSettings):
     MEILI_MASTER_KEY: str
     REDIS_URL: str
     CACHE_TTL: int
-
+    MAX_REQUESTS_PER_MINUTE: int
+    BLOCK_TIME: int
+    MAX_FAILED_ATTEMPTS: int
+    FAILED_ATTEMPTS_EXPIRATION: int
+    REQUEST_EXPIRATION: int
 
     class Config:
         env_file = "backend/.env"

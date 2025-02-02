@@ -70,7 +70,7 @@ class RecordOperation(CrudOperation):
 
 class ScheduledRecordOperation(CrudOperation):
     def __init__(self, db_session: AsyncSession):
-        super().__init__(db_session, DBScheduledRecord)
+        super().__init__(db_session, DBScheduledRecord, None)
 
     async def create_scheduled_record(self, shedule_record: ScheduleRecordCreate):
         try:
