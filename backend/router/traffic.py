@@ -59,36 +59,6 @@ def delete_file(path: Path):
         print(f"[ERROR] Failed to delete file: {path}. Error: {e}")
 
 
-@traffic_router.get("/{traffic_id}", response_model=TrafficInDB, status_code=status.HTTP_200_OK)
-async def get_one_traffic_data(
-    request: Request,
-    traffic_id: int,
-    db: AsyncSession = Depends(get_db),
-    current_user: UserInDB = Depends(get_admin_or_staff_user),
-):
-    """
-    Retrieve one traffic data.
-    """
-    # Extract the base URL and normalize it to include port 8000
-    proto = request.headers.get("X-Forwarded-Proto", "http")
-    raw_base_url = str(request.base_url).rstrip("/")
-    base_url_without_port = raw_base_url.split("//")[1].split(":")[0]
-    nginx_base_url = f"{proto}://{base_url_without_port}:8000"
-
-    traffic_op = TrafficOperation(db)
-    traffic = await traffic_op.get_one_object_id(traffic_id)
-
-    # Modify plate image URLs for display in the response
-    traffic.plate_image_url = None
-    if traffic.plate_image:
-        traffic.plate_image_url = f"{nginx_base_url}{traffic.plate_image}"
-    traffic.full_image_url = None
-    if traffic.full_image:
-        traffic.full_image_url = f"{nginx_base_url}{traffic.full_image}"
-
-    return traffic
-
-
 @traffic_router.get("/", status_code=status.HTTP_200_OK)
 async def get_traffic_data(
     request: Request,
@@ -186,8 +156,11 @@ async def export_traffic_data(
     Generate a ZIP file containing traffic data and plate images (limited to 1000 records).
     """
     proto = request.headers.get("X-Forwarded-Proto", "http")
-    base_url = str(request.base_url).split(":")[1].strip()  # Remove trailing slash if present
-    nginx_base_url = f"{proto}:{base_url}" # Remove trailing slash if present
+
+    # Extract the base URL and normalize it to include port 8000
+    raw_base_url = str(request.base_url).rstrip("/")
+    base_url_without_port = raw_base_url.split("//")[1].split(":")[0]
+    nginx_base_url = f"{proto}://{base_url_without_port}:8000/"
 
     traffic_op = TrafficOperation(db)
 
@@ -220,7 +193,7 @@ async def export_traffic_data(
         ws.title = "Traffic Data"
 
         # Write headers
-        headers = ["ID", "Plate Number", "OCR Accuracy", "Vision Speed", "Timestamp", "Camera ID", "Gate ID", "Plate Image"]
+        headers = ["ID", "Plate Number", "OCR Accuracy", "Vision Speed", "Timestamp", "Camera", "Gate", "Plate Image", "Full Image"]
         ws.append(headers)
 
         def replace_with_persian_characters(plate_number: str, char_map: dict) -> str:
@@ -231,9 +204,13 @@ async def export_traffic_data(
         for item in all_items:
             persian_plate_number = replace_with_persian_characters(item.plate_number, dict_char_alpha)
             item.plate_image_url = None
-            if item.plate_image_path:
-                filename = Path(item.plate_image_path).name
+            if item.plate_image:
+                filename = Path(item.plate_image).name
                 item.plate_image_url = f"plate_images/{filename}"
+            item.full_image_url = None
+            if item.full_image:
+                filename = Path(item.full_image).name
+                item.full_image_url = f"full_images/{filename}"
 
             ws.append([
                 item.id,
@@ -242,9 +219,10 @@ async def export_traffic_data(
                 item.ocr_accuracy,
                 item.vision_speed,
                 item.timestamp.isoformat(),
-                item.camera_id,
-                item.gate_id,
+                item.camera_name,
+                item.gate_name,
                 item.plate_image_url,
+                item.full_image_url,
             ])
 
         wb.save(excel_path)
@@ -253,10 +231,18 @@ async def export_traffic_data(
         plate_images_dir = temp_dir_path / "plate_images"
         plate_images_dir.mkdir(parents=True, exist_ok=True)
         for item in all_items:
-            if item.plate_image_path:
-                source_image_path = Path(item.plate_image_path)
+            if item.plate_image:
+                source_image_path = Path(item.plate_image)
                 if source_image_path.exists():
                     shutil.copyfile(source_image_path, plate_images_dir / source_image_path.name)
+        # Copy full images to folder
+        full_images_dir = temp_dir_path / "full_images"
+        full_images_dir.mkdir(parents=True, exist_ok=True)
+        for item in all_items:
+            if item.full_image:
+                source_image_path = Path(item.full_image)
+                if source_image_path.exists():
+                    shutil.copyfile(source_image_path, full_images_dir / source_image_path.name)
 
         # Create ZIP file
         zip_file_name = "traffic_data.zip"
@@ -265,6 +251,8 @@ async def export_traffic_data(
             zip_file.write(excel_path, arcname="traffic_data.xlsx")
             for image_file in plate_images_dir.iterdir():
                 zip_file.write(image_file, arcname=f"plate_images/{image_file.name}")
+            for image_file in full_images_dir.iterdir():
+                zip_file.write(image_file, arcname=f"full_images/{image_file.name}")
         # Copy the ZIP file to the permanent directory
         permanent_zip_path = ZIP_FILE_DIR / zip_file_name
         shutil.copyfile(persistent_zip_path, permanent_zip_path)
@@ -273,3 +261,33 @@ async def export_traffic_data(
     zip_file_url = f"{nginx_base_url}{permanent_zip_path}"
 
     return {"message": "Traffic data exported successfully.", "zip_file_url": zip_file_url}
+
+
+@traffic_router.get("/{traffic_id}", response_model=TrafficInDB, status_code=status.HTTP_200_OK)
+async def get_one_traffic_data(
+    request: Request,
+    traffic_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: UserInDB = Depends(get_admin_or_staff_user),
+):
+    """
+    Retrieve one traffic data.
+    """
+    # Extract the base URL and normalize it to include port 8000
+    proto = request.headers.get("X-Forwarded-Proto", "http")
+    raw_base_url = str(request.base_url).rstrip("/")
+    base_url_without_port = raw_base_url.split("//")[1].split(":")[0]
+    nginx_base_url = f"{proto}://{base_url_without_port}:8000"
+
+    traffic_op = TrafficOperation(db)
+    traffic = await traffic_op.get_one_object_id(traffic_id)
+
+    # Modify plate image URLs for display in the response
+    traffic.plate_image_url = None
+    if traffic.plate_image:
+        traffic.plate_image_url = f"{nginx_base_url}{traffic.plate_image}"
+    traffic.full_image_url = None
+    if traffic.full_image:
+        traffic.full_image_url = f"{nginx_base_url}{traffic.full_image}"
+
+    return traffic

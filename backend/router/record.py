@@ -196,7 +196,7 @@ async def process_scheduled_recording(session: AsyncSession, camera_id: int, dur
         "status": "success",
         "message": "Recording scheduled successfully",
         "scheduledTime": start_time.isoformat(),
-        "recordId": scheduled_record.id
+        "record_id": scheduled_record.id
     }
 
 
@@ -217,13 +217,14 @@ async def get_scheduled_recordings(
     base_url = str(request.base_url).split(":")[1].strip()  # Remove trailing slash if present
     nginx_base_url = f"{proto}:{base_url}" # Remove trailing slash if present
 
-    return [
-        {
-            "id": record.id,
-            "title": record.title,
-            "camera_id": record.camera_id,
-            "timestamp": record.timestamp,
-            "video_url": f"{nginx_base_url}/uploads/recordings/{record.title}",
-        }
-        for record in records["records"]
-    ]
+    # records["records"] = [
+    #     {
+    #         "id": record.id,
+    #         "title": record.title,
+    #         "camera_id": record.camera_id,
+    #         "duration": record.duration,
+    #         "video_url": f"{nginx_base_url}/uploads/recordings/{record.title}",
+    #     }
+    #     for record in records["records"]
+    # ]
+    return records
