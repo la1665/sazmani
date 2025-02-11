@@ -61,11 +61,15 @@ RECORDINGS_DIR = BASE_UPLOAD_DIR / "recordings"
 RECORDINGS_DIR.mkdir(parents=True, exist_ok=True)
 ZIP_FILE_DIR = BASE_UPLOAD_DIR / "zips"
 ZIP_FILE_DIR.mkdir(parents=True, exist_ok=True)
+CRUD_IMAGE_DIR = BASE_UPLOAD_DIR / "crud_images"
+CRUD_IMAGE_DIR.mkdir(parents=True, exist_ok=True)
+
 # Serve static files for profile and plate images
 app.mount("/uploads/profile_images", StaticFiles(directory=str(PROFILE_IMAGE_DIR)), name="profile_images")
 app.mount("/uploads/car_images", StaticFiles(directory=str(CAR_IMAGE_DIR)), name="car_images")
 app.mount("/uploads/plate_images", StaticFiles(directory=str(PLATE_IMAGE_DIR)), name="plate_images")
 app.mount("/uploads/traffic_images", StaticFiles(directory=str(TRAFFIC_IMAGE_DIR)), name="traffic_images")
+app.mount("/uploads/crud_images", StaticFiles(directory=str(CRUD_IMAGE_DIR)), name="crud_images")
 app.mount("/uploads/recordings", StaticFiles(directory=str(RECORDINGS_DIR)), name="recordings")
 app.mount("/uploads/zips", StaticFiles(directory=str(ZIP_FILE_DIR)), name="zips")
 
