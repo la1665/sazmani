@@ -37,11 +37,11 @@ media/
 .DS_Store
 
 
-# Ignore all log files in the logs directory
-logs/*.log
+## Ignore all log files in the logs directory
+#logs/*.log
 
-# Or ignore all log files recursively
-logs/**/*.log
+## Or ignore all log files recursively
+#logs/**/*.log
 
-# Alternatively, ignore all log files in the project
-*.log
+## Alternatively, ignore all log files in the project
+#*.log

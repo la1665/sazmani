@@ -96,7 +96,7 @@ async def main():
 
         await js.subscribe(
             "messages.plates_data",
-            durable="plates_consumer",
+            # durable="plates_consumer",
             cb=on_plates_data,
         )
         print("Subscribed to 'messages.plates_data' with JetStream.")

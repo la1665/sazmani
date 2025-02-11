@@ -29,9 +29,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Create necessary directories with appropriate permissions
-RUN mkdir -p logs && chmod 755 logs
+# RUN mkdir -p logs && chmod 755 logs
 # RUN mkdir -p uploads && chmod 755 uploads
 # Ensure /app/uploads has the correct permissions inside the backend container
+RUN mkdir -p /app/logs && chmod -R 755 /app/logs
 RUN mkdir -p /app/uploads && chmod -R 755 /app/uploads
 
 # Expose the application port

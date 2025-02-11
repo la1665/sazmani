@@ -1,6 +1,6 @@
 from datetime import datetime
 from pydantic import BaseModel, ConfigDict
-from typing import Optional, List
+from typing import Optional, List, Tuple
 
 from schema.pagination import Pagination
 from schema.camera_setting import CameraSettingInstanceSummery
@@ -19,6 +19,9 @@ class CameraBase(BaseModel):
     latitude: str
     longitude: str
     description: Optional[str] = None
+    crud_image: Optional[str] = None
+    points: Optional[List[Tuple[int, int]]] = None
+
 
 
 class CameraCreate(CameraBase):
@@ -34,6 +37,8 @@ class CameraUpdate(BaseModel):
     gate_id: Optional[int] = None
     lpr_id: Optional[int] = None
     is_active: Optional[bool] = None
+    crud_image: Optional[str] = None
+    points: Optional[List[Tuple[int, int]]] = None
 
 
 
@@ -60,6 +65,9 @@ class CameraInDB(CameraBase):
     gate_id: int
     settings: List[CameraSettingInstanceSummery] = []
     lpr_id: Optional[int] = None
+    crud_image: Optional[str]=None
+    points: Optional[List[Tuple[int, int]]] = None
+
 
     class Config:
         from_attributes = True

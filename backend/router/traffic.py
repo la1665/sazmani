@@ -119,7 +119,7 @@ async def get_traffic_data(
 
     # Generate export link
     export_link = (
-        f"{nginx_base_url}/v1/traffic/export?"
+        f"{nginx_base_url}v1/traffic/export?"
         f"gate_id={gate_id or ''}&"
         f"camera_id={camera_id or ''}&"
         f"prefix_2={prefix_2 or ''}&"

@@ -16,6 +16,9 @@ class DBCamera(Base):
     created_at = Column(DateTime, nullable=False, default=func.now())
     updated_at = Column(DateTime, nullable=False, default=func.now(), onupdate=func.now())
 
+    crud_image = Column(String, nullable=True)
+    points = Column(JSON, nullable=True)
+
     gate_id = Column(Integer, ForeignKey('gates.id'), nullable=False)
     gate = relationship("DBGate", back_populates="cameras")
     lpr_id = Column(Integer, ForeignKey("lprs.id"), nullable=False)
@@ -27,3 +30,11 @@ class DBCamera(Base):
             cascade="all, delete-orphan"
         )
     keys = relationship("DBRelayKey", back_populates="camera")
+
+    def set_points(self, points: list[tuple]):
+
+            self.points = points
+
+    def get_points(self):
+
+        return self.points

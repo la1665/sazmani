@@ -18,6 +18,7 @@ from sqlalchemy.future import select
 
 from settings import settings
 from database.engine import nats_session
+from models.camera import DBCamera
 from crud.traffic import TrafficOperation
 from schema.traffic import TrafficCreate
 from models.record import DBRecord
@@ -59,6 +60,81 @@ TRAFFIC_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 # IMAGE_UPLOAD_DIR = BASE_UPLOAD_DIR/ "plate_images"
 # IMAGE_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+
+
+
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+async def crud_image(message: Msg):
+
+    try:
+        # Extract the camera_id and crud_image from the message
+        request = json.loads(message.data.decode())
+        message_body = request.get("messageBody", {})
+        camera_id =int(message_body.get("camera_id"))
+        crud_image = message_body.get("crud_image")
+
+        if not camera_id or not crud_image:
+            logger.error("Missing camera_id or crud_image in the message body.")
+
+        # Save the image and get the image path (or URL)
+        storagefactory = StorageFactory.get_instance(settings.STORAGE_BACKEND)
+        crud_image_path = await storagefactory.save_image("crud_images", crud_image)
+        logger.info(f"Image saved successfully at path: {crud_image_path}")
+
+        # Use nats_session() to handle DB session (assuming it returns a valid session object)
+        async with nats_session() as db_session:
+            # Fetch the camera from the database using the camera_id
+            db_camera = await db_session.get(DBCamera, camera_id)
+            if not db_camera:
+                logger.error(f"Camera with ID {camera_id} not found in the database.")
+
+            # Update the camera's crud_image field with the saved image path
+            if db_camera.crud_image:
+                try:
+                    # Assuming the images are stored in a directory called 'media/images/'
+                    old_image_path = Path(db_camera.crud_image)
+                    if old_image_path.exists():
+                        os.remove(old_image_path)
+                        logger.info(f"Deleted old image: {old_image_path}")
+                    else:
+                        logger.warning(f"Old image not found: {old_image_path}")
+                except Exception as e:
+                    logger.error(f"Error deleting old image: {str(e)}")
+
+            db_camera.crud_image = crud_image_path
+            db_session.add(db_camera)
+
+            settings_ = await db_session.execute(
+                select(DBCameraSettingInstance).where(DBCameraSettingInstance.camera_id == camera_id)
+            )
+            settings_list = settings_.scalars().all()
+
+            if isinstance(crud_image, list):
+                crud_image = bytes(crud_image)
+            nparr = np.frombuffer(crud_image, np.uint8)
+            image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+
+            for setting in settings_list:
+                if setting.name == "ViewPointWidth":  # Assuming this setting is named 'image_width'
+                    setting.value = str(image.shape[1])  # Update image width setting
+                    db_session.add(setting)
+                elif setting.name == "ViewPointHeight":  # Assuming this setting is named 'image_height'
+                    setting.value = str(image.shape[0])  # Update image height setting
+                    db_session.add(setting)
+
+            await db_session.commit()
+            await db_session.refresh(db_camera)
+
+            logger.info(f"Camera with ID {camera_id} updated with new image path.")
+
+    except Exception as e:
+        # Log any exception that occurs during the process
+        logger.error(f"Error processing the message: {str(e)}")
 
 
 async def save_recording_metadata(title, camera_id, file_path):

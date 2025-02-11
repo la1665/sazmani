@@ -20,7 +20,6 @@ import logging
 from minio import Minio
 import io
 
-from settings import Settings
 
 
 class MinioClientSingleton:

@@ -1,3 +1,4 @@
+import logging
 from fastapi import APIRouter, Depends, status, HTTPException, UploadFile, File, Request
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -23,6 +24,7 @@ guest_router = APIRouter(
     prefix="/v1/guests",
     tags=["guests"],
 )
+logger = logging.getLogger("guests")
 
 
 @guest_router.post("/", response_model=GuestInDB, status_code=status.HTTP_201_CREATED)

@@ -78,6 +78,7 @@ class GuestInDB(GuestBase):
     created_at: datetime
     updated_at: datetime
     is_active: bool
+    inviting_user_id: int
     vehicles: List[VehicleSummary] = []
     gates: List[GateSummmary] = []
 

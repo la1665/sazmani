@@ -52,6 +52,11 @@ class Settings(BaseSettings):
     MAX_FAILED_ATTEMPTS: int
     FAILED_ATTEMPTS_EXPIRATION: int
     REQUEST_EXPIRATION: int
+    ENV: str
+    LOG_DIR: str
+    LOG_BACKEND: str
+    ELASTIC_HOSTS: str
+    ELASTIC_INDEX: str
 
     class Config:
         env_file = "backend/.env"

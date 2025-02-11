@@ -1,10 +1,14 @@
+import logging
 import uvicorn
 import socketio
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
-from pathlib import Path
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
+from pathlib import Path
 
+from logging_package.logging_script import logging_main
+from logging_package.middleware import CentralizedLoggingMiddleware
 from lifespan import lifespan
 from socket_managment_nats_ import sio
 from router.base import include_router
@@ -22,7 +26,11 @@ from router.vehicle import vehicle_router
 from router.traffic import traffic_router
 from router.record import record_router
 from router.search import search_router
+from router.camerapolygon import polygon_router
+from utils.middlewares import security_middleware
 
+logging_main()
+logger = logging.getLogger("api_logs")
 
 app = FastAPI(
     title="Sazman",
@@ -30,9 +38,8 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# from utils.middlewares import SecurityMiddleware
-# app.add_middleware(SecurityMiddleware)
-
+app.add_middleware(BaseHTTPMiddleware, dispatch=security_middleware)
+app.add_middleware(CentralizedLoggingMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
