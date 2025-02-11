@@ -17,4 +17,4 @@ class CameraPolygonInDB(BaseModel):
     polygon_points: Optional[List[Tuple[int, int]]] = None # List of tuples (x, y)
 
     class Config:
-        orm_mode = True
+        from_attributes = True
