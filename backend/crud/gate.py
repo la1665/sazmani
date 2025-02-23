@@ -142,13 +142,6 @@ class GateOperation(CrudOperation):
             if not gate:
                 raise HTTPException(status_code=404, detail="Gate not found")
 
-            # Base query
-            query = select(
-                func.coalesce(func.count(DBTraffic.id), 0).label('count')
-            ).where(
-                DBTraffic.gate_name == gate.name
-            )
-
             # Determine time grouping
             if interval == "daily":
                 time_part = func.date_trunc('hour', DBTraffic.timestamp)
@@ -165,11 +158,15 @@ class GateOperation(CrudOperation):
             else:
                 raise HTTPException(status_code=400, detail="Invalid interval")
 
-            # Build final query
-            query = query.select(
-                func.to_char(time_part, format_str).label('interval'),
-                func.count(DBTraffic.id).label('count')
-            ).group_by('interval')
+            # Build final query with GATE FILTER
+            query = (
+                select(
+                    func.to_char(time_part, format_str).label('interval'),
+                    func.count(DBTraffic.id).label('count')
+                )
+                .where(DBTraffic.gate_name == gate.name)  # Add filter here
+                .group_by('interval')
+            )
 
             # Execute query
             result = await self.db_session.execute(query)
@@ -182,8 +179,11 @@ class GateOperation(CrudOperation):
             raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
     def _generate_series(self, db_results, interval, max_intervals):
-        # Convert DB results to dictionary
-        result_dict = {row.interval: row.count for row in db_results}
+        # Convert to case-insensitive dictionary for weekly intervals
+        result_dict = {}
+        for row in db_results:
+            key = row.interval.upper() if interval == "weekly" else row.interval
+            result_dict[key] = row.count
 
         # Generate complete series
         series = []
@@ -192,8 +192,8 @@ class GateOperation(CrudOperation):
                 label = f"{i:02}:00-{(i+1):02}:00"
                 key = f"{i:02}:00"
             elif interval == "weekly":
-                days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
-                label = days[i]
+                days = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"]
+                label = days[i][:3].title()  # Return "Mon", "Tue" etc
                 key = days[i]
             elif interval == "monthly":
                 label = f"Day {i+1}"
