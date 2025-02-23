@@ -166,7 +166,7 @@ class GateOperation(CrudOperation):
                 raise HTTPException(status_code=400, detail="Invalid interval")
 
             # Build final query
-            query = select(
+            query = query.select(
                 func.to_char(time_part, format_str).label('interval'),
                 func.count(DBTraffic.id).label('count')
             ).group_by('interval')
