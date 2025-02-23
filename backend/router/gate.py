@@ -61,6 +61,7 @@ async def api_delete_gate(gate_id: int, db:AsyncSession=Depends(get_db), current
     gate_op = GateOperation(db)
     return await gate_op.delete_object(gate_id)
 
+
 @gate_router.patch("/{gate_id}", status_code=status.HTTP_200_OK, dependencies=[Depends(check_password_changed)])
 async def api_change_activation(
     gate_id: int,
@@ -70,7 +71,8 @@ async def api_change_activation(
     gate_op = GateOperation(db)
     return await gate_op.change_activation_status(gate_id)
 
-@gate_router.get("/{gate_id}/time-series", response_model=List[TimeIntervalCount], status_code=status.HTTP_200_OK, dependencies=[Depends(check_password_changed)])
+
+@gate_router.get("/{gate_id}/chart", response_model=List[TimeIntervalCount], status_code=status.HTTP_200_OK, dependencies=[Depends(check_password_changed)])
 async def get_gate_time_series(
     gate_id: int,
     interval: str = Query(..., enum=["daily", "weekly", "monthly"]),
