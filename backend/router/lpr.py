@@ -27,7 +27,6 @@ async def api_create_lpr(
 ):
     lpr_op = LprOperation(db)
     new_lpr = await lpr_op.create_lpr(lpr)
-    await add_connection(db, lpr_id=new_lpr.id)
     return new_lpr
 
 @lpr_router.get("/", response_model=LprPagination, status_code=status.HTTP_200_OK, dependencies=[Depends(check_password_changed)])
@@ -65,7 +64,6 @@ async def api_update_lpr(
 ):
     lpr_op = LprOperation(db)
     db_lpr = await lpr_op.update_lpr(lpr_id, lpr)
-    await update_connection(db, lpr_id=db_lpr.id)
     return db_lpr
 
 @lpr_router.delete("/{lpr_id}", status_code=status.HTTP_200_OK, dependencies=[Depends(check_password_changed)])
@@ -75,7 +73,6 @@ async def api_delete_lpr(
     current_user:UserInDB=Depends(get_admin_or_staff_user)
 ):
     lpr_op = LprOperation(db)
-    await remove_connection(lpr_id)
     db_lpr = await lpr_op.delete_lpr(lpr_id)
     return db_lpr
 
@@ -88,10 +85,8 @@ async def api_change_activation(
     lpr_op = LprOperation(db)
     status = await lpr_op.change_activation_status(lpr_id)
     if status["message"] == "activated":
-        await add_connection(db, lpr_id)
         return status
     else:
-        await remove_connection(lpr_id)
         return status
 
 @lpr_router.get("/{lpr_id}/settings", response_model=LprSettingInstancePagination, status_code=status.HTTP_200_OK, dependencies=[Depends(check_password_changed)])

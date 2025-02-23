@@ -7,6 +7,17 @@ from schema.pagination import Pagination
 from schema.lpr import CameraSummery
 
 
+class GateTrafficStats(BaseModel):
+    id: int
+    name: str
+    gate_type: str
+    traffic_count: int
+
+
+class TimeIntervalCount(BaseModel):
+    interval: str
+    count: int
+
 
 class PermittedUsersSummery(BaseModel):
     id: int
@@ -22,6 +33,7 @@ class GateSummmary(BaseModel):
     description: str
     class Config:
         from_attributes = True
+
 
 class GateBase(BaseModel):
     name: str

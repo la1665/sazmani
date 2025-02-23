@@ -107,7 +107,31 @@ services:
     depends_on:
       - backend
 
+  # opensearch:
+  #   image: opensearchproject/opensearch:latest
+  #   container_name: opensearch
+  #   environment:
+  #     - discovery.type=single-node
+  #     - bootstrap.memory_lock=true
+  #     - OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m
+  #     - "OPENSEARCH_INITIAL_ADMIN_PASSWORD=admin"
+  #   ports:
+  #     - "9200:9200"
+  #   volumes:
+  #     - opensearch-data:/usr/share/opensearch/data
+
+  # opensearch-dashboards:
+  #   image: opensearchproject/opensearch-dashboards:latest
+  #   container_name: opensearch-dashboards
+  #   ports:
+  #     - "5601:5601"
+  #   environment:
+  #     - OPENSEARCH_HOSTS=http://opensearch:9200
+  #   depends_on:
+  #     - opensearch
+
 volumes:
+  # opensearch-data:
   postgres_data:
     driver: local
   redis_data:

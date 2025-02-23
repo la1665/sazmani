@@ -277,7 +277,7 @@ async def get_one_traffic_data(
     proto = request.headers.get("X-Forwarded-Proto", "http")
     raw_base_url = str(request.base_url).rstrip("/")
     base_url_without_port = raw_base_url.split("//")[1].split(":")[0]
-    nginx_base_url = f"{proto}://{base_url_without_port}:8000"
+    nginx_base_url = f"{proto}://{base_url_without_port}:8000/"
 
     traffic_op = TrafficOperation(db)
     traffic = await traffic_op.get_one_object_id(traffic_id)

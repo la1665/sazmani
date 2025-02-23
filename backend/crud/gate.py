@@ -1,15 +1,16 @@
 import math
 from fastapi import HTTPException, status
-from sqlalchemy import func
+from sqlalchemy import func, extract
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
 from crud.base import CrudOperation
 from crud.building import BuildingOperation
-from models.gate import DBGate
+from models.gate import DBGate, GateType
+from models.traffic import DBTraffic
 from models.camera import DBCamera
-from schema.gate import GateUpdate, GateCreate, GateInDB
+from schema.gate import GateUpdate, GateCreate, GateInDB, TimeIntervalCount
 from search_service.search_config import gate_search
 
 
@@ -95,3 +96,112 @@ class GateOperation(CrudOperation):
             "current_page": page,
             "page_size": page_size,
         }
+
+    async def get_gate_traffic_stats(self, gate_type: str):
+        try:
+            gate_type_enum = None
+            if gate_type != 'all':
+                try:
+                    gate_type_enum = GateType[gate_type]
+                except KeyError:
+                    raise HTTPException(status_code=400, detail="Invalid gate type")
+
+            stmt = select(
+                DBGate.id,
+                DBGate.name,
+                DBGate.gate_type,
+                func.count(DBTraffic.id).label('traffic_count')
+            ).select_from(DBGate).outerjoin(
+                DBTraffic, DBGate.name == DBTraffic.gate_name
+            )
+
+            if gate_type_enum is not None:
+                stmt = stmt.where(DBGate.gate_type == gate_type_enum)
+
+            stmt = stmt.group_by(DBGate.id)
+
+            result = await self.db_session.execute(stmt)
+            rows = result.all()
+
+            stats = []
+            for row in rows:
+                stats.append({
+                    "id": row[0],
+                    "name": row[1],
+                    "gate_type": row[2].name,
+                    "traffic_count": row[3]
+                })
+            return stats
+        except SQLAlchemyError as e:
+            raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+
+    async def get_gate_time_series(self, gate_id: int, interval: str):
+        try:
+            # Get gate first to verify existence
+            gate = await self.get_one_object_id(gate_id)
+            if not gate:
+                raise HTTPException(status_code=404, detail="Gate not found")
+
+            # Base query
+            query = select(
+                func.coalesce(func.count(DBTraffic.id), 0).label('count')
+            ).where(
+                DBTraffic.gate_name == gate.name
+            )
+
+            # Determine time grouping
+            if interval == "daily":
+                time_part = func.date_trunc('hour', DBTraffic.timestamp)
+                format_str = "HH24:00"
+                max_intervals = 24
+            elif interval == "weekly":
+                time_part = func.date_trunc('day', DBTraffic.timestamp)
+                format_str = "Dy"
+                max_intervals = 7
+            elif interval == "monthly":
+                time_part = func.date_trunc('day', DBTraffic.timestamp)
+                format_str = "DD"
+                max_intervals = 31
+            else:
+                raise HTTPException(status_code=400, detail="Invalid interval")
+
+            # Build final query
+            query = select(
+                func.to_char(time_part, format_str).label('interval'),
+                func.count(DBTraffic.id).label('count')
+            ).group_by('interval')
+
+            # Execute query
+            result = await self.db_session.execute(query)
+            db_results = result.all()
+
+            # Generate complete time series
+            return self._generate_series(db_results, interval, max_intervals)
+
+        except SQLAlchemyError as e:
+            raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+
+    def _generate_series(self, db_results, interval, max_intervals):
+        # Convert DB results to dictionary
+        result_dict = {row.interval: row.count for row in db_results}
+
+        # Generate complete series
+        series = []
+        for i in range(max_intervals):
+            if interval == "daily":
+                label = f"{i:02}:00-{(i+1):02}:00"
+                key = f"{i:02}:00"
+            elif interval == "weekly":
+                days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+                label = days[i]
+                key = days[i]
+            elif interval == "monthly":
+                label = f"Day {i+1}"
+                key = f"{i+1:02}"
+
+            series.append(TimeIntervalCount(
+                interval=label,
+                count=result_dict.get(key, 0)
+            ))
+
+        return series
