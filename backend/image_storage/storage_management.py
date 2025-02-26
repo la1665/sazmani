@@ -258,6 +258,44 @@ class ImageStorage:
         except ValueError:
             raise ValueError(f"Invalid MinIO path format: {file_path}")
 
+    async def delete_image(self, image_path: str) -> None:
+        """
+        Delete an image from the storage backend.
+
+        Args:
+            image_path (str): The path to the image (local path or MinIO object path).
+
+        Raises:
+            ValueError: If the storage backend is invalid.
+            Exception: If the deletion fails.
+        """
+        try:
+            if self.storage_backend == "hard":
+                # Local storage deletion
+                file_path = Path(image_path)
+                if file_path.exists():
+                    file_path.unlink()
+                    logger.info(f"Deleted local image: {file_path}")
+                else:
+                    logger.warning(f"Local image not found: {file_path}")
+
+            elif self.storage_backend == "minio":
+                # MinIO storage deletion
+                bucket_name, object_name = self._parse_minio_path(image_path)
+
+                if self.object_exists(bucket_name, object_name):
+                    self.minio_client.remove_object(bucket_name, object_name)
+                    logger.info(f"Deleted MinIO object: {object_name} from bucket {bucket_name}")
+                else:
+                    logger.warning(f"MinIO object not found: {object_name} in bucket {bucket_name}")
+
+            else:
+                raise ValueError(f"Unsupported storage backend: {self.storage_backend}")
+
+        except Exception as e:
+            logger.error(f"Failed to delete image: {e}")
+            raise Exception(f"Failed to delete image: {e}")
+
 
 
 

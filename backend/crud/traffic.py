@@ -2,6 +2,7 @@ import base64
 import math
 import os
 from pathlib import Path
+from typing import List
 from fastapi import HTTPException, status
 from sqlalchemy import func
 from sqlalchemy.exc import SQLAlchemyError
@@ -111,14 +112,20 @@ class TrafficOperation(CrudOperation):
         Retrieve all traffic data with optional filters for gate_id, camera_id, plate_number, and date range, with pagination.
         """
         try:
+            if camera_id is not None:
+                db_camera = await CameraOperation(self.db_session).get_one_object_id(camera_id)
+                camera_name = db_camera.name
+            if gate_id is not None:
+                db_gate = await GateOperation(self.db_session).get_one_object_id(gate_id)
+                gate_name = db_gate.name
             # Base query
             query = select(self.db_table).order_by(self.db_table.timestamp.desc())
 
             # Apply filters
             if gate_id is not None:
-                query = query.where(self.db_table.gate_id == gate_id)
+                query = query.where(self.db_table.gate_name == gate_name)
             if camera_id is not None:
-                query = query.where(self.db_table.camera_id == camera_id)
+                query = query.where(self.db_table.camera_name == camera_name)
             if prefix_2 is not None:
                 query = query.where(self.db_table.prefix_2.like(f"%{prefix_2}%"))
             if alpha is not None:
@@ -172,3 +179,38 @@ class TrafficOperation(CrudOperation):
         except Exception as e:
             print(f"[ERROR] Failed to fetch traffic data: {e}")
             raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, "Failed to fetch traffic data.")
+
+
+    async def get_traffics_by_camera_and_date(
+        self,
+        start_date: datetime,
+        end_date: datetime,
+        camera_id: int=None
+    ):
+        if camera_id:
+            # Get camera details
+            camera = await CameraOperation(self.db_session).get_one_object_id(camera_id)
+            result = await self.db_session.execute(
+                select(self.db_table).where(
+                    self.db_table.camera_name == camera.name,
+                    self.db_table.timestamp >= start_date,
+                    self.db_table.timestamp < end_date
+                )
+            )
+        else:
+            result = await self.db_session.execute(
+                select(self.db_table).where(
+                    self.db_table.timestamp >= start_date,
+                    self.db_table.timestamp < end_date
+                )
+            )
+        return result.scalars().all()
+
+    async def delete_traffic_batch(self, traffics):
+        try:
+            for traffic in traffics:
+                await self.db_session.delete(traffic)
+            await self.db_session.commit()
+        except SQLAlchemyError as error:
+            await self.db_session.rollback()
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, f"Delete failed: {error}")

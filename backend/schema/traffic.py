@@ -47,6 +47,12 @@ class TrafficMeilisearch(BaseModel):
         )
 
 
+class DeleteTrafficResponse(BaseModel):
+    message: str
+    deleted_count: int
+    image_errors: list[str] = []
+
+
 class TrafficInDB(TrafficBase):
     id: int
     gate_name: str

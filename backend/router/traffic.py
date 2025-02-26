@@ -12,11 +12,13 @@ from typing import Optional
 
 from settings import settings
 from database.engine import get_db
-from schema.traffic import TrafficCreate, TrafficInDB, TrafficPagination
+from schema.traffic import TrafficCreate, TrafficInDB, TrafficPagination, DeleteTrafficResponse
 from crud.traffic import TrafficOperation
+from crud.camera import CameraOperation
 from schema.user import UserInDB
 from auth.authorization import get_admin_user, get_admin_or_staff_user, get_self_or_admin_or_staff_user, get_self_or_admin_user, get_self_user_only
 from utils.middlewares import check_password_changed
+from image_storage.storage_management import StorageFactory
 
 
 BASE_UPLOAD_DIR = Path("uploads")
@@ -291,3 +293,54 @@ async def get_one_traffic_data(
         traffic.full_image_url = f"{nginx_base_url}{traffic.full_image}"
 
     return traffic
+
+
+@traffic_router.delete("/delete", response_model=DeleteTrafficResponse)
+async def delete_traffics(
+    camera_id: int = Query(None, description="Camera ID to delete from"),
+    start_date: datetime = Query(..., description="Start date (UTC)"),
+    end_date: datetime = Query(..., description="End date (UTC)"),
+    db: AsyncSession = Depends(get_db)
+):
+    try:
+
+        # Get matching traffics
+        traffic_op = TrafficOperation(db)
+        traffics = await traffic_op.get_traffics_by_camera_and_date(
+            start_date,
+            end_date,
+            camera_id
+        )
+
+        if not traffics:
+            return DeleteTrafficResponse(
+                message="No matching records found",
+                deleted_count=0
+            )
+
+        # Delete images
+        storage = StorageFactory.get_instance(settings.STORAGE_BACKEND)
+        image_errors = []
+
+        for traffic in traffics:
+            try:
+                if traffic.plate_image:
+                    await storage.delete_image(traffic.plate_image)
+                if traffic.full_image:
+                    await storage.delete_image(traffic.full_image)
+            except Exception as e:
+                image_errors.append(f"Failed to delete images for {traffic.id}: {str(e)}")
+
+        # Delete database records
+        await traffic_op.delete_traffic_batch(traffics)
+
+        return DeleteTrafficResponse(
+            message=f"Deleted {len(traffics)} records",
+            deleted_count=len(traffics),
+            image_errors=image_errors
+        )
+
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        raise HTTPException(500, f"Operation failed: {str(e)}")
