@@ -16,7 +16,7 @@ from models.record import DBRecord, DBScheduledRecord
 from crud.record import RecordOperation, ScheduledRecordOperation
 from schema.user import UserInDB
 from schema.record import RecordCreate, RecordInDB, RecordPagination
-from schema.schedule_record import ScheduleRecordCreate
+from schema.schedule_record import ScheduleRecordCreate, ScheduleRecordUpdate, ScheduleRecordInDB
 from socket_managment_nats_ import publish_message_to_nats
 
 # Directory for recordings
@@ -228,3 +228,26 @@ async def get_scheduled_recordings(
     #     for record in records["records"]
     # ]
     return records
+
+
+@record_router.put("/scheduled_recordings/{record_id}", response_model=ScheduleRecordInDB, status_code=200)
+async def update_scheduled_recording(
+    record_id: int,
+    update_data: ScheduleRecordUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: UserInDB = Depends(get_admin_or_staff_user),
+):
+    schedule_record_op = ScheduledRecordOperation(db)
+    updated_record = await schedule_record_op.update_scheduled_record(record_id, update_data)
+    return updated_record
+
+
+@record_router.delete("/scheduled_recordings/{record_id}", status_code=200)
+async def delete_scheduled_recording(
+    record_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: UserInDB = Depends(get_admin_or_staff_user),
+):
+    schedule_record_op = ScheduledRecordOperation(db)
+    result = await schedule_record_op.delete_scheduled_record(record_id)
+    return result

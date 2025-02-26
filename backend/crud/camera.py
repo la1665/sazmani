@@ -40,7 +40,7 @@ class CameraOperation(CrudOperation):
         query = await self.db_session.execute(
             select(self.db_table)
             .where(self.db_table.gate_id.in_(gate_ids))
-            .order_by(self.db_table.id)
+            .order_by(self.db_table.updated_at.desc())
             .offset(offset)
             .limit(page_size)
         )
@@ -148,7 +148,7 @@ class CameraOperation(CrudOperation):
 
         # Fetch the records
         query = await self.db_session.execute(
-            select(DBCameraSettingInstance).where(DBCameraSettingInstance.camera_id == camera_id).order_by(DBCameraSettingInstance.id).offset(offset).limit(page_size)
+            select(DBCameraSettingInstance).where(DBCameraSettingInstance.camera_id == camera_id).order_by(DBCameraSettingInstance.updated_at.desc()).offset(offset).limit(page_size)
         )
         objects = query.unique().scalars().all()
 

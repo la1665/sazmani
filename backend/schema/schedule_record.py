@@ -16,6 +16,13 @@ class ScheduleRecordCreate(ScheduleRecordBase):
     scheduled_time: datetime
 
 
+class ScheduleRecordUpdate(BaseModel):
+    title: Optional[str] = None
+    camera_id: Optional[int] = None
+    scheduled_time: Optional[datetime] = None
+    duration: Optional[int] = None
+
+
 class ScheduleRecordInDB(ScheduleRecordBase):
     id: int
     camera_id: int

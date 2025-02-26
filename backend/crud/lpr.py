@@ -118,7 +118,7 @@ class LprOperation(CrudOperation):
 
         # Fetch the records
         query = await self.db_session.execute(
-            select(DBCamera).where(DBCamera.lpr_id == lpr_id).order_by(DBCamera.id).offset(offset).limit(page_size)
+            select(DBCamera).where(DBCamera.lpr_id == lpr_id).order_by(DBCamera.updated_at.desc()).offset(offset).limit(page_size)
         )
         objects = query.unique().scalars().all()
 
@@ -142,7 +142,7 @@ class LprOperation(CrudOperation):
 
         # Fetch the records
         query = await self.db_session.execute(
-            select(DBLprSettingInstance).where(DBLprSettingInstance.lpr_id == lpr_id).order_by(DBLprSettingInstance.id).offset(offset).limit(page_size)
+            select(DBLprSettingInstance).where(DBLprSettingInstance.lpr_id == lpr_id).order_by(DBLprSettingInstance.updated_at.desc()).offset(offset).limit(page_size)
         )
         objects = query.unique().scalars().all()
 

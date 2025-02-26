@@ -28,7 +28,7 @@ class CentralizedLoggingMiddleware(BaseHTTPMiddleware):
             request.state.correlation_id = correlation_id
 
             start_time = time.time()
-            user_info = "Anonymous"
+            user_info = {"username": "Anonymous", "id": None}
             action = self.infer_action(request)
 
             # Extract user information from the token, if available
@@ -40,9 +40,8 @@ class CentralizedLoggingMiddleware(BaseHTTPMiddleware):
                     try:
                         db_session = await db_generator.__anext__()
                         user = await get_user_from_token(token, db_session)
-                        # user = await get_current_user(token=token)
                         if user:
-                            user_info = f"User {user.username} (ID: {user.id})"
+                            user_info = {"username": user.username, "id": user.id}
                     except Exception as e:
                         logger.error(f"[{correlation_id}] Error retrieving user: {e}", exc_info=True)
 
@@ -50,6 +49,7 @@ class CentralizedLoggingMiddleware(BaseHTTPMiddleware):
             await self.log_request(request, user_info, action, correlation_id)
 
             try:
+                # Call the next middleware or route handler
                 response = await call_next(request)
                 response_status = response.status_code
             except Exception as e:
@@ -59,11 +59,39 @@ class CentralizedLoggingMiddleware(BaseHTTPMiddleware):
 
             # Log the response details
             duration = time.time() - start_time
-            self.log_response(request, response, user_info, action, correlation_id, duration, response_status)
+
+            # Create log record with additional context
+            message = f"{request.method} {request.url.path} - {response_status}"
+            record = logging.LogRecord(
+                name="api_logs",
+                level=logging.INFO,
+                pathname=request.url.path,
+                lineno=0,
+                msg=message,
+                args=(),
+                exc_info=None
+            )
+
+            # Add custom properties
+            record.correlation_id = correlation_id
+            record.method = request.method
+            record.path = str(request.url.path)
+            record.status_code = response_status
+            record.duration = duration
+            record.client_ip = request.client.host if request.client else None
+            record.user = {
+                "username": user_info["username"],
+                "id": user_info["id"]
+            }
+            record.action = action
+
+            # Send to OpenSearch
+            logger.handle(record)
 
             return response
         else:
             return await call_next(request)
+
 
     @staticmethod
     def infer_action(request: Request) -> str:
@@ -82,7 +110,7 @@ class CentralizedLoggingMiddleware(BaseHTTPMiddleware):
             return f"Fetching resource from {request.url.path}"
         return "Unknown action"
 
-    async def log_request(self, request: Request, user_info: str, action: str, correlation_id: str):
+    async def log_request(self, request: Request, user_info: dict, action: str, correlation_id: str):
         """Log details of the incoming request, masking sensitive data."""
         client_details = self.get_client_details(request)
         query_params = dict(request.query_params)

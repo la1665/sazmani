@@ -57,6 +57,12 @@ class Settings(BaseSettings):
     LOG_BACKEND: str
     ELASTIC_HOSTS: str
     ELASTIC_INDEX: str
+    # OpenSearch Config
+    OPENSEARCH_HOST: str
+    OPENSEARCH_PORT: int
+    OPENSEARCH_USER: str
+    OPENSEARCH_PASSWORD: str
+    OPENSEARCH_INDEX: str
 
     class Config:
         env_file = "backend/.env"

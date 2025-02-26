@@ -59,14 +59,14 @@ class KeyOperation(CrudOperation):
         """
         Retrieve all keys associated with a relay ID.
         """
-        result = await self.db_session.execute(select(DBRelayKey).filter(DBRelayKey.relay_id == relay_id))
+        result = await self.db_session.execute(select(DBRelayKey).filter(DBRelayKey.relay_id == relay_id).order_by(DBRelayKey.updated_at.desc()))
         return result.scalars().all()
 
     async def get_keys_by_camera_id(self, camera_id: int):
         """
         Retrieve all keys associated with a camera ID.
         """
-        result = await self.db_session.execute(select(DBRelayKey).filter(DBRelayKey.camera_id == camera_id))
+        result = await self.db_session.execute(select(DBRelayKey).filter(DBRelayKey.camera_id == camera_id).order_by(DBRelayKey.updated_at.desc()))
         return result.scalars().all()
 
     async def get_keys_by_camera_and_status(self, camera_id: int, status_id: int):
@@ -77,7 +77,7 @@ class KeyOperation(CrudOperation):
             select(DBRelayKey).filter(
                 DBRelayKey.camera_id == camera_id,
                 DBRelayKey.status_id == status_id
-            )
+            ).order_by(DBRelayKey.updated_at.desc())
         )
         return result.scalars().all()
 

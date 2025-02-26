@@ -112,7 +112,7 @@ class TrafficOperation(CrudOperation):
         """
         try:
             # Base query
-            query = select(self.db_table).order_by(self.db_table.id)
+            query = select(self.db_table).order_by(self.db_table.timestamp.desc())
 
             # Apply filters
             if gate_id is not None:
@@ -120,13 +120,13 @@ class TrafficOperation(CrudOperation):
             if camera_id is not None:
                 query = query.where(self.db_table.camera_id == camera_id)
             if prefix_2 is not None:
-                query = query.where(self.db_table.prefix_2 == prefix_2)
+                query = query.where(self.db_table.prefix_2.like(f"%{prefix_2}%"))
             if alpha is not None:
                 query = query.where(self.db_table.alpha == alpha)
             if mid_3 is not None:
-                query = query.where(self.db_table.mid_3 == mid_3)
+                query = query.where(self.db_table.mid_3.like(f"%{mid_3}%"))
             if suffix_2 is not None:
-                query = query.where(self.db_table.suffix_2 == suffix_2)
+                query = query.where(self.db_table.suffix_2.like(f"%{suffix_2}%"))
             # if plate_number is not None:
             #     query = query.where(self.db_table.plate_number.ilike(f"%{plate_number}%"))
             if start_date is not None:

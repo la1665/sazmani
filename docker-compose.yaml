@@ -65,12 +65,16 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
       - MEILI_MASTER_KEY=${MEILI_MASTER_KEY}
+      - OPENSEARCH_HOST=opensearch
+      - OPENSEARCH_PORT=9200
+      - OPENSEARCH_USER=admin
+      - OPENSEARCH_PASSWORD=admin
     extra_hosts:
       - host.docker.internal:host-gateway
     depends_on:
       - db
-      # - meilisearch
-      # - redis
+      - meilisearch
+      - redis
 
   nats_service:
     build:
@@ -108,8 +112,8 @@ services:
       - backend
 
   # opensearch:
-  #   image: opensearchproject/opensearch:latest
-  #   container_name: opensearch
+  #   image: opensearchproject/opensearch:2.11.0
+  #   container_name: sazman_opensearch
   #   environment:
   #     - discovery.type=single-node
   #     - bootstrap.memory_lock=true
@@ -118,20 +122,26 @@ services:
   #   ports:
   #     - "9200:9200"
   #   volumes:
-  #     - opensearch-data:/usr/share/opensearch/data
+  #     - opensearch_data:/usr/share/opensearch/data
+  #   extra_hosts:
+  #     - host.docker.internal:host-gateway
 
   # opensearch-dashboards:
-  #   image: opensearchproject/opensearch-dashboards:latest
-  #   container_name: opensearch-dashboards
+  #   image: opensearchproject/opensearch-dashboards:2.11.0
+  #   container_name: sazman_opensearch_dashboards
   #   ports:
   #     - "5601:5601"
   #   environment:
   #     - OPENSEARCH_HOSTS=http://opensearch:9200
+  #     - OPENSEARCH_USERNAME=admin
+  #     - OPENSEARCH_PASSWORD=admin
+  #   extra_hosts:
+  #     - host.docker.internal:host-gateway
   #   depends_on:
   #     - opensearch
 
 volumes:
-  # opensearch-data:
+  # opensearch_data:
   postgres_data:
     driver: local
   redis_data:

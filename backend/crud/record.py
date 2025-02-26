@@ -8,9 +8,11 @@ from sqlalchemy.future import select
 from sqlalchemy.exc import SQLAlchemyError
 
 from crud.base import CrudOperation
+from crud.camera import CameraOperation
 from models.record import DBRecord, DBScheduledRecord
+from models.camera import DBCamera
 from schema.record import RecordCreate
-from schema.schedule_record import ScheduleRecordCreate
+from schema.schedule_record import ScheduleRecordCreate, ScheduleRecordUpdate
 
 class RecordOperation(CrudOperation):
     def __init__(self, db_session: AsyncSession):
@@ -50,7 +52,7 @@ class RecordOperation(CrudOperation):
             offset = (page - 1) * page_size
 
             # Apply pagination
-            query = query.offset(offset).limit(page_size)
+            query = query.order_by(DBRecord.timestamp.desc()).offset(offset).limit(page_size)
 
             # Execute query and fetch results
             result = await self.db_session.execute(query)
@@ -106,7 +108,7 @@ class ScheduledRecordOperation(CrudOperation):
             offset = (page - 1) * page_size
 
             # Apply pagination
-            query = query.offset(offset).limit(page_size)
+            query = query.order_by(DBScheduledRecord.scheduled_time.desc()).offset(offset).limit(page_size)
             result = await self.db_session.execute(query)
             records = result.scalars().all()
 
@@ -119,3 +121,49 @@ class ScheduledRecordOperation(CrudOperation):
             }
         except SQLAlchemyError as error:
             raise HTTPException(status.HTTP_400_BAD_REQUEST, f"{error}: Failed to retrieve scheduled records.")
+
+
+    async def update_scheduled_record(self, record_id: int, update_data: ScheduleRecordUpdate):
+        try:
+            db_record = await self.get_one_object_id(record_id)
+            if db_record.is_processed:
+                raise HTTPException(status_code=400, detail="Cannot update a processed recording")
+
+            # Validate camera exists if camera_id is updated
+            if update_data.camera_id is not None:
+                await CameraOperation(self.db_session).get_one_object_id(update_data.camera_id)
+                camera = update_data.camera_id
+
+            # Validate scheduled_time is in the future
+            if update_data.scheduled_time and update_data.scheduled_time <= datetime.datetime.utcnow():
+                raise HTTPException(status_code=400, detail="Scheduled time must be in the future")
+
+            # Update fields
+            for field, value in update_data.dict(exclude_unset=True).items():
+                setattr(db_record, field, value)
+
+            self.db_session.add(db_record)
+            await self.db_session.commit()
+            await self.db_session.refresh(db_record)
+            return db_record
+        except SQLAlchemyError as error:
+            await self.db_session.rollback()
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, f"{error}: Failed to update scheduled recording.")
+        finally:
+            await self.db_session.close()
+
+
+    async def delete_scheduled_record(self, record_id: int):
+        try:
+            db_record = await self.get_one_object_id(record_id)
+            if db_record.is_processed:
+                raise HTTPException(status_code=400, detail="Cannot delete a processed recording")
+
+            await self.db_session.delete(db_record)
+            await self.db_session.commit()
+            return {"message": f"object {record_id} deleted successfully"}
+        except SQLAlchemyError as error:
+            await self.db_session.rollback()
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, f"{error}: Could not delete object")
+        finally:
+            await self.db_session.close()
