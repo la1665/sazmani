@@ -1,9 +1,17 @@
+import os
+from pathlib import Path
+
+import pytz
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from datetime import datetime
 
+from sqlalchemy.orm import selectinload
+
 from database.engine import async_session
+from models import DBCamera
 from models.record import DBScheduledRecord
+from settings import settings
 from socket_managment_nats_ import publish_message_to_nats
 
 
@@ -13,8 +21,11 @@ async def process_scheduled_recordings():
     """
     async with async_session() as session:
         # Fetch all unprocessed scheduled recordings with a start time <= current time
+        tehran_tz = pytz.timezone('Asia/Tehran')
+
+        current_time = datetime.now(tehran_tz)
         query = select(DBScheduledRecord).where(
-            DBScheduledRecord.scheduled_time <= datetime.utcnow(),
+            DBScheduledRecord.scheduled_time <= current_time,
             DBScheduledRecord.is_processed == False
         )
         result = await session.execute(query)
@@ -22,15 +33,46 @@ async def process_scheduled_recordings():
 
         for record in scheduled_records:
             try:
-                # Build NATS payload
+                query = await session.execute(
+                    select(DBCamera).where(DBCamera.id == record.camera_id).options(selectinload(DBCamera.lpr))
+                )
+                db_camera = query.scalar_one_or_none()
+
+                if not db_camera:
+                    raise print("Camera not found")
+
+                # Validate LPR (License Plate Recognition system)
+                lpr = db_camera.lpr
+                if not lpr or not lpr.is_active:
+                    raise print("LPR system is not active or not found for this camera")
+                timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+                recording_filename = f"{record.camera_id}_{timestamp}.mp4"
+
+                # Define base upload directory
+                CURRENT_DIR = Path(__file__).resolve().parent
+                PROJECT_ROOT = CURRENT_DIR.parent
+                relative_upload_dir = settings.BASE_UPLOAD_DIR
+                BASE_UPLOAD_DIR = PROJECT_ROOT / relative_upload_dir
+                RECORDINGS_DIR = BASE_UPLOAD_DIR / "recordings"
+                RECORDINGS_DIR.mkdir(parents=True, exist_ok=True)  # Ensure directory exists
+
+                file_path = os.path.join(RECORDINGS_DIR, recording_filename)
+
+                # Prepare NATS message
                 nats_payload = {
                     "commandType": "recording",
                     "cameraId": str(record.camera_id),
                     "duration": record.duration,
+                    "video_address": file_path
                 }
 
-                # Send the message to NATS
-                await publish_message_to_nats(nats_payload, record.camera_id)
+                try:
+                    # Publish to NATS
+                    await publish_message_to_nats(nats_payload, lpr.id)
+                except Exception as e:
+                    raise print(f"Failed to publish NATS message: {str(e)}")
+
+
                 record.is_processed = True
                 session.add(record)
                 await session.commit()

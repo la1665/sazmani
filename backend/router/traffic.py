@@ -1,3 +1,5 @@
+import tempfile
+
 import openpyxl
 import shutil
 from zipfile import ZipFile
@@ -10,15 +12,15 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Optional
 
+from image_storage.storage_management import StorageFactory
 from settings import settings
 from database.engine import get_db
 from schema.traffic import TrafficCreate, TrafficInDB, TrafficPagination, DeleteTrafficResponse
 from crud.traffic import TrafficOperation
-from crud.camera import CameraOperation
 from schema.user import UserInDB
 from auth.authorization import get_admin_user, get_admin_or_staff_user, get_self_or_admin_or_staff_user, get_self_or_admin_user, get_self_user_only
 from utils.middlewares import check_password_changed
-from image_storage.storage_management import StorageFactory
+from logging_package import logging_script
 
 
 BASE_UPLOAD_DIR = Path("uploads")
@@ -27,7 +29,7 @@ ZIP_FILE_DIR.mkdir(parents=True, exist_ok=True)
 
 dict_char_alpha = {
     'a':'ا', 'b': "ب", 'c': 'ص', 'd':'د', 'e': 'ژ', 'f':'ف', 'g':'گ', 'h':'ه', 'i':'ع','j': 'ج',
-    'k':'ک', 'l':'ل', 'm':'م','n':'ن','o':'ث','q':'ق', 's':'س', 't':'ت','v':'و' , 'w':'ط', 'y':'ی',
+    'k':'ک', 'l':'ل', 'm':'م','n':'ن','o':'ث','q':'ق', 's':'س', 't':'ت','v':'و' , 'w':'ط', 'y':'ی', 'x':'x',
     'p':'پ', 'u':'ش' , 'z':'ز', 'D':'D', 'S':'S',
 }
 
@@ -59,6 +61,7 @@ def delete_file(path: Path):
             print(f"[INFO] Deleted file: {path}")
     except Exception as e:
         print(f"[ERROR] Failed to delete file: {path}. Error: {e}")
+
 
 
 @traffic_router.get("/", status_code=status.HTTP_200_OK)
@@ -110,14 +113,23 @@ async def get_traffic_data(
     if not paginated_result["items"]:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No traffic data found for the given filters.")
 
+    stroragefactory = StorageFactory.get_instance(settings.STORAGE_BACKEND)
     # Modify plate image URLs for display in the response
     for traffic in paginated_result["items"]:
         traffic.plate_image_url = None
         if traffic.plate_image:
-            traffic.plate_image_url = f"{nginx_base_url}{traffic.plate_image}"
+
+            if settings.STORAGE_BACKEND == "minio":
+                filepath = await stroragefactory.get_full_path(Path(traffic.plate_image))
+                traffic.plate_image =filepath
+            #traffic.plate_image_url = f"{nginx_base_url}{traffic.plate_image}"
         traffic.full_image_url = None
         if traffic.full_image:
-            traffic.full_image_url = f"{nginx_base_url}{traffic.full_image}"
+
+            if settings.STORAGE_BACKEND == "minio":
+                filepath = await stroragefactory.get_full_path(Path(traffic.full_image))
+                traffic.full_image = filepath
+            #traffic.full_image_url = f"{nginx_base_url}{traffic.full_image}"
 
     # Generate export link
     export_link = (
@@ -137,7 +149,6 @@ async def get_traffic_data(
     paginated_result["export_url"] = export_link
 
     return paginated_result
-
 
 @traffic_router.get("/export", status_code=status.HTTP_200_OK)
 async def export_traffic_data(
@@ -204,7 +215,7 @@ async def export_traffic_data(
 
         # Write data rows
         for item in all_items:
-            persian_plate_number = replace_with_persian_characters(item.plate_number, dict_char_alpha)
+            persian_plate_number = item.plate_number[3:]+dict_char_alpha[item.plate_number[2]]+item.plate_number[:2]
             item.plate_image_url = None
             if item.plate_image:
                 filename = Path(item.plate_image).name
@@ -214,7 +225,7 @@ async def export_traffic_data(
                 filename = Path(item.full_image).name
                 item.full_image_url = f"full_images/{filename}"
 
-            ws.append([
+            row_data = [
                 item.id,
                 persian_plate_number,
                 # item.plate_number,
@@ -223,10 +234,22 @@ async def export_traffic_data(
                 item.timestamp.isoformat(),
                 item.camera_name,
                 item.gate_name,
-                item.plate_image_url,
-                item.full_image_url,
-            ])
+            ]
+            if item.plate_image_url:
+                # Create a hyperlink using the same unique name
+                hyperlink = f'=HYPERLINK("{item.plate_image_url}", "View Image")'
+                row_data.append(hyperlink)
+            else:
+                row_data.append(None)
 
+            if item.full_image_url:
+                # Create a hyperlink using the same unique name
+                hyperlink = f'=HYPERLINK("{item.full_image_url}", "View Image")'
+                row_data.append(hyperlink)
+            else:
+                row_data.append(None)
+
+            ws.append(row_data)
         wb.save(excel_path)
 
         # Copy plate images to folder
@@ -248,7 +271,8 @@ async def export_traffic_data(
 
         # Create ZIP file
         zip_file_name = "traffic_data.zip"
-        persistent_zip_path = Path("/tmp") / zip_file_name
+        temp_dir = tempfile.gettempdir()
+        persistent_zip_path = Path(temp_dir) / zip_file_name
         with ZipFile(persistent_zip_path, "w") as zip_file:
             zip_file.write(excel_path, arcname="traffic_data.xlsx")
             for image_file in plate_images_dir.iterdir():
@@ -285,11 +309,19 @@ async def get_one_traffic_data(
     traffic = await traffic_op.get_one_object_id(traffic_id)
 
     # Modify plate image URLs for display in the response
+    stroragefactory = StorageFactory.get_instance(settings.STORAGE_BACKEND)
+
     traffic.plate_image_url = None
     if traffic.plate_image:
+        if settings.STORAGE_BACKEND == "minio":
+            filepath = await stroragefactory.get_full_path(Path(traffic.plate_image))
+            traffic.plate_image =filepath
         traffic.plate_image_url = f"{nginx_base_url}{traffic.plate_image}"
     traffic.full_image_url = None
     if traffic.full_image:
+        if settings.STORAGE_BACKEND == "minio":
+            filepath = await stroragefactory.get_full_path(Path(traffic.full_image))
+            traffic.full_image = filepath
         traffic.full_image_url = f"{nginx_base_url}{traffic.full_image}"
 
     return traffic

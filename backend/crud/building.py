@@ -1,5 +1,4 @@
 import math
-from types import BuiltinMethodType
 from fastapi import HTTPException, status
 from sqlalchemy import func
 from sqlalchemy.exc import SQLAlchemyError

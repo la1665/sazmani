@@ -11,6 +11,7 @@ from crud.base import CrudOperation
 from crud.user import UserOperation
 from models.vehicle import DBVehicle
 from schema.vehicle import VehicleCreate
+from settings import settings
 from validator import image_validator
 from image_storage.storage_management import StorageFactory
 
@@ -24,7 +25,7 @@ class VehicleOperation(CrudOperation):
     def __init__(self, db_session: AsyncSession) -> None:
         super().__init__(db_session, DBVehicle, None)
         self.image_type = "car_images"
-        self.storage = StorageFactory.get_instance()
+        self.storage = StorageFactory.get_instance(settings.STORAGE_BACKEND)
 
     async def get_vehicles_by_user(self, user_id: int, page: int = 1, page_size: int = 10):
         """

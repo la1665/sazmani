@@ -12,6 +12,7 @@ from crud.base import CrudOperation
 from models.user import DBUser, UserType
 from models.gate import DBGate
 from schema.user import UserInDB, UserUpdate, UserCreate, PasswordUpdate, SelfUserUpdate
+from settings import settings
 from validator import image_validator
 from image_storage.storage_management import StorageFactory
 from search_service.search_config import user_search
@@ -26,7 +27,7 @@ class UserOperation(CrudOperation):
     def __init__(self, db_session: AsyncSession) -> None:
         super().__init__(db_session, DBUser, user_search)
         self.image_type = "profile_images"
-        self.storage = StorageFactory.get_instance()
+        self.storage = StorageFactory.get_instance(settings.STORAGE_BACKEND)
 
     async def get_user_personal_number(self, personal_number: str):
         query = await self.db_session.execute(select(self.db_table).filter(self.db_table.personal_number == personal_number))

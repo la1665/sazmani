@@ -223,7 +223,7 @@ class ImageStorage:
         :return: Full local path or MinIO download link.
         """
         if self.storage_backend == "hard":
-            return dir_path
+            return str(dir_path)
         elif self.storage_backend == "minio":
             try:
                 # Parse bucket name and object name from dir_path

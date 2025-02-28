@@ -19,10 +19,13 @@ from models.camera import DBCamera
 from shared_resources import connections
 from nats_consumer.nats_setup import create_ssl_context, connect_to_nats_server
 from nats_consumer.handlers import _create_command_message, handle_message
+from nats_consumer.heartbeatmanager import HeartbeatManager
+
+heartbeatManager: HeartbeatManager =None
 
 logger = logging.getLogger(__name__)
 
-nats_client = NATS()
+nats_client: NATS = None
 
 async def connect_to_nats():
     ssl_ctx = await create_ssl_context(
@@ -33,6 +36,7 @@ async def connect_to_nats():
 
     # Connect to NATS
     global nats_client
+    nats_client = NATS()
     nats_client = await connect_to_nats_server(ssl_ctx)
 
     async def on_message(msg):
@@ -310,6 +314,7 @@ async def emit_to_requested_sids(event_name, data, camera_id=None):
         await sio.emit("resources", data, room=f"camera-{lpr_id}-resources")
     elif event_name == "heartbeat":
         lpr_id = data["lpr_id"]
+        await heartbeatManager.handle_heartbeat(data)
         await sio.emit("heartbeat", data, room=f"camera-{lpr_id}-heartbeat")
         logger.info(f"Emitted heartbeat to all subscribed clients")
 
@@ -374,3 +379,5 @@ async def _handle_camera_subscription(sid, camera_id, request_type, data):
     await publish_message_to_nats(command_data, lpr.id)
     logger.info(f"Client {sid} subscribed to live data for camera_id {camera_id}")
     # await sio.emit("request_acknowledged", {"status": "subscribed", "data_type": request_type, "camera_id": camera_id}, to=sid)
+
+heartbeatManager = HeartbeatManager(emit_to_requested_sids=emit_to_requested_sids)

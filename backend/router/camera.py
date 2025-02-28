@@ -1,13 +1,17 @@
+from pathlib import Path
+
 from fastapi import APIRouter, Depends, status, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from auth.authorization import get_current_active_user, get_admin_user, get_admin_or_staff_user, get_admin_staff_viewer_user
 from database.engine import get_db
+from image_storage.storage_management import StorageFactory
 from models.user import UserType
 from schema.user import UserInDB
 from schema.camera import CameraCreate, CameraUpdate, CameraInDB, CameraPagination
 from schema.camera_setting import CameraSettingInstanceUpdate, CameraSettingInstanceCreate, CameraSettingInstanceInDB, CameraSettingInstancePagination
 from crud.camera import CameraOperation
+from settings import settings
 from utils.middlewares import check_password_changed
 
 
@@ -44,13 +48,21 @@ async def api_get_all_cameras(
             detail="Permission denied: Unable to retrieve camera list.",
         )
 
+    stroragefactory = StorageFactory.get_instance(settings.STORAGE_BACKEND)
+    for cam in result["items"]:
+        cam.crud_image = await stroragefactory.get_full_path(Path(cam.crud_image))
+
+
     return result
 
 
 @camera_router.get("/{camera_id}", response_model=CameraInDB, status_code=status.HTTP_200_OK, dependencies=[Depends(check_password_changed)])
 async def api_get_camera(camera_id: int, db: AsyncSession = Depends(get_db), current_user: UserInDB = Depends(get_admin_staff_viewer_user)):
     camera_op = CameraOperation(db)
-    return await camera_op.get_one_object_id(camera_id)
+    camera_detials = await camera_op.get_one_object_id(camera_id)
+    stroragefactory = StorageFactory.get_instance(settings.STORAGE_BACKEND)
+    camera_detials.crud_image = await stroragefactory.get_full_path(Path(camera_detials.crud_image))
+    return camera_detials
 
 
 @camera_router.put("/{camera_id}", response_model=CameraInDB, status_code=status.HTTP_200_OK, dependencies=[Depends(check_password_changed)])

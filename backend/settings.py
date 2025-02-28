@@ -59,7 +59,7 @@ class Settings(BaseSettings):
     ELASTIC_INDEX: str
     # OpenSearch Config
     OPENSEARCH_HOST: str
-    OPENSEARCH_PORT: int
+    OPENSEARCH_PORT: int=9200
     OPENSEARCH_USER: str
     OPENSEARCH_PASSWORD: str
     OPENSEARCH_INDEX: str

@@ -7,7 +7,7 @@ from utils.recording_processor import process_scheduled_recordings
 
 from database.engine import async_session, engine, ensure_tables_exist
 from utils.db_utils import create_default_admin, initialize_defaults
-from socket_managment_nats_ import connect_to_nats
+from socket_managment_nats_ import connect_to_nats, heartbeatManager
 from search_service.search_config import (
     user_search, building_search,
     gate_search, camera_search,
@@ -54,6 +54,7 @@ async def lifespan(app: FastAPI):
     # Scheduler for recurring tasks
     scheduler = AsyncIOScheduler()
     scheduler.add_job(process_scheduled_recordings, "interval", seconds=60)
+    scheduler.add_job(heartbeatManager.check_disconnected_clients, "interval", seconds=120)
     scheduler.start()
 
     try:

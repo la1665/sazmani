@@ -15,11 +15,14 @@ import hmac
 from pathlib import Path
 from sqlalchemy.future import select
 
-
 from settings import settings
 from database.engine import nats_session
 from models.camera import DBCamera
+from models.camera_setting import DBCameraSettingInstance
 from crud.traffic import TrafficOperation
+from crud.vehicle import VehicleOperation
+from crud.guest import GuestOperation
+from crud.user import UserOperation
 from schema.traffic import TrafficCreate
 from models.record import DBRecord
 from models.lpr import DBLpr
@@ -450,6 +453,8 @@ async def handle_plates_data(msg: Msg, nats_client: NATS) -> None:
         await msg.ack()
         print("JetStream plates_data received and processed.")
 
+        messageType = message["messageType"]
+        messageType=="no_plates_data"
         message_body = message["messageBody"]
         camera_id = message_body.get("camera_id")
         timestamp = message_body.get("timestamp")
@@ -501,6 +506,22 @@ async def handle_plates_data(msg: Msg, nats_client: NATS) -> None:
                     traffic_operation = TrafficOperation(session)
                     try:
                         for traffic_data in batch:
+                            db_vehicle = await VehicleOperation(session).get_one_vehcile_plate(traffic_data.plate_number)
+                            if db_vehicle:
+                                if db_vehicle.owner_id:
+                                    db_owner = await UserOperation(session).get_one_object_id(db_vehicle.owner_id)
+                                    first_name = db_owner.first_name
+                                    last_name = db_owner.last_name
+                                    user_type = db_owner.user_type
+                                else:
+                                    db_guest = await GuestOperation(session).get_one_object_id(db_vehicle.guest_id)
+                                    first_name = db_guest.first_name
+                                    last_name = db_guest.last_name
+                                    user_type = db_guest.user_type
+                            else:
+                                first_name = None
+                                last_name = None
+                                user_type = None
                             await traffic_operation.create_traffic(traffic_data)
                         await session.commit()
                         print(f"[INFO] Successfully stored {len(batch)} traffic records.")
@@ -525,7 +546,8 @@ async def handle_plates_data(msg: Msg, nats_client: NATS) -> None:
                     "vision_speed": car.get("vision_speed", 0.0),
                     "vehicle_class": car.get("vehicle_class", {}),
                     "vehicle_type": car.get("vehicle_type", {}),
-                    "vehicle_color": car.get("vehicle_color", {})
+                    "vehicle_color": car.get("vehicle_color", {}),
+                    "owner_data": {"first_name": f"{first_name}", "last_name": f"{last_name}", "user_type": f"{user_type}"}
                 }
                 for car in message_body.get("cars", [])
             ]
