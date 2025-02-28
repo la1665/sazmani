@@ -5,6 +5,7 @@ from pathlib import Path
 from minio.error import S3Error
 from datetime import timedelta
 
+from image_storage.storage_management import StorageFactory
 from settings import settings
 from database.engine import get_db
 # from database.minio_engine import minio_client
@@ -52,8 +53,12 @@ async def api_get_user(
     user = await user_op.get_one_object_id(user_id)
 
     # Generate the profile image URL if the image exists
+    stroragefactory = StorageFactory.get_instance(settings.STORAGE_BACKEND)
     if user.profile_image:
-        user.profile_image_url = f"{request.base_url}{user.profile_image}"
+        if settings.STORAGE_BACKEND == "minio":
+            filepath = await stroragefactory.get_full_path(Path(user.profile_image))
+            user.profile_image = filepath
+        # user.profile_image_url = f"{request.base_url}{user.profile_image}"
 
     return user
 
@@ -71,9 +76,13 @@ async def api_get_all_users(
     """
     user_op = UserOperation(db)
     result = await user_op.get_all_objects(page, page_size)
+    stroragefactory = StorageFactory.get_instance(settings.STORAGE_BACKEND)
     for user in result["items"]:
         if user.profile_image:
-            user.profile_image_url = f"{request.base_url}{user.profile_image}"
+            if settings.STORAGE_BACKEND == "minio":
+                filepath = await stroragefactory.get_full_path(Path(user.profile_image))
+                user.profile_image = filepath
+            # user.profile_image_url = f"{request.base_url}{user.profile_image}"
 
     return result
 

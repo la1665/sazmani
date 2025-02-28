@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends, Request, HTTPException, UploadFile, File
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional
 
+from image_storage.storage_management import StorageFactory
 from settings import settings
 from database.engine import get_db
 from schema.vehicle import VehicleCreate, VehiclePagination, VehicleInDB
@@ -66,9 +67,13 @@ async def api_get_user_all_vehicles(
                 detail="Permission denied: Unable to retrieve all vehicles.",
             )
 
+    stroragefactory = StorageFactory.get_instance(settings.STORAGE_BACKEND)
     for vehicle in result["items"]:
         if vehicle.car_image:
-            vehicle.car_image_url = f"{request.base_url}{vehicle.car_image}"
+            if settings.STORAGE_BACKEND == "minio":
+                filepath = await stroragefactory.get_full_path(Path(vehicle.car_image))
+                vehicle.car_image = filepath
+            # vehicle.car_image_url = f"{request.base_url}{vehicle.car_image}"
     return result
 
 
@@ -93,8 +98,13 @@ async def api_get_vehicle(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Permission denied: You cannot view this resource.",
         )
+
+    stroragefactory = StorageFactory.get_instance(settings.STORAGE_BACKEND)
     if vehicle.car_image:
-        vehicle.car_image_url = f"{request.base_url}{vehicle.car_image}"
+        if settings.STORAGE_BACKEND == "minio":
+            filepath = await stroragefactory.get_full_path(Path(vehicle.car_image))
+            vehicle.car_image = filepath
+        # vehicle.car_image_url = f"{request.base_url}{vehicle.car_image}"
 
     return vehicle
 
