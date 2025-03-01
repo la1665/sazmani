@@ -1,5 +1,7 @@
 from pydantic_settings import BaseSettings
 from typing import Optional
+from dotenv import load_dotenv
+
 
 class Settings(BaseSettings):
     POSTGRES_USER: Optional[str] = None
@@ -68,4 +70,5 @@ class Settings(BaseSettings):
         env_file = "backend/.env"
 
 
+load_dotenv()
 settings = Settings()

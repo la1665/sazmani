@@ -1,17 +1,19 @@
 import asyncio
 import signal
+import platform
+from pathlib import Path
 
 from nats_consumer.nats_setup import create_ssl_context, connect_to_nats_server, setup_jetstream_stream
 from nats_consumer.auth import authenticate_client
 from nats_consumer.handlers import (
     handle_lpr_settings_request,
-    handle_plates_data,
+    handle_plates_data, crud_image
 )
 from nats_consumer.record_handling import handle_recording
 from settings import settings
 
-
 async def main():
+    PROJECT_ROOT = Path(Path(__file__).resolve().parents[1])
     # Create an SSL context
     ssl_ctx = await create_ssl_context(
         settings.NATS_CA_PATH,
@@ -71,14 +73,16 @@ async def main():
 
         print("Shutdown complete.")
 
-    # Attach signal handlers
-    async def handle_signal(sig_name):
-        print(f"Received signal {sig_name}, initiating shutdown...")
-        stop_event.set()
+    # Platform check for signal handling (Windows does not support signal handling)
+    if platform.system() != 'Windows':
+        # Attach signal handlers for Unix-based systems
+        async def handle_signal(sig_name):
+            print(f"Received signal {sig_name}, initiating shutdown...")
+            stop_event.set()
 
-    loop = asyncio.get_running_loop()
-    for sig in (signal.SIGINT, signal.SIGTERM):
-        loop.add_signal_handler(sig, lambda s=sig: asyncio.create_task(handle_signal(sig.name)))
+        loop = asyncio.get_running_loop()
+        for sig in (signal.SIGINT, signal.SIGTERM):
+            loop.add_signal_handler(sig, lambda s=sig: asyncio.create_task(handle_signal(sig.name)))
 
     # Set up subscriptions
     try:
@@ -88,6 +92,9 @@ async def main():
         await nc.subscribe("authenticate", cb=authenticate_client)
         print("Subscribed to 'authenticate' subject.")
 
+        await nc.subscribe("message.crud", cb=crud_image)
+        print("Subscribed to 'messages.crud' subject.")
+
         await nc.subscribe("message.recording.*", cb=handle_recording)
         print("Subscribed to 'recording.*' subject pattern.")
 
@@ -96,7 +103,7 @@ async def main():
 
         await js.subscribe(
             "messages.plates_data",
-            # durable="plates_consumer",
+            durable="plates_consumer",
             cb=on_plates_data,
         )
         print("Subscribed to 'messages.plates_data' with JetStream.")
@@ -112,7 +119,6 @@ async def main():
         print("Main event loop canceled.")
     finally:
         await shutdown()
-
 
 if __name__ == "__main__":
     try:

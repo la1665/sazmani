@@ -222,6 +222,10 @@ class ImageStorage:
         :param expire_time: Expiration time for the MinIO link in seconds (default: 3600 seconds).
         :return: Full local path or MinIO download link.
         """
+        if dir_path is None:
+            return None
+
+        dir_path = Path(dir_path)
         if self.storage_backend == "hard":
             return str(dir_path)
         elif self.storage_backend == "minio":

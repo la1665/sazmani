@@ -148,7 +148,7 @@ class CameraOperation(CrudOperation):
 
         # Fetch the records
         query = await self.db_session.execute(
-            select(DBCameraSettingInstance).where(DBCameraSettingInstance.camera_id == camera_id).order_by(DBCameraSettingInstance.updated_at.desc()).offset(offset).limit(page_size)
+            select(DBCameraSettingInstance).where(DBCameraSettingInstance.camera_id == camera_id).order_by(DBCameraSettingInstance.name.desc()).offset(offset).limit(page_size)
         )
         objects = query.unique().scalars().all()
 

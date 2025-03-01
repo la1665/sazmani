@@ -50,7 +50,7 @@ async def api_get_all_cameras(
 
     stroragefactory = StorageFactory.get_instance(settings.STORAGE_BACKEND)
     for cam in result["items"]:
-        cam.crud_image = await stroragefactory.get_full_path(Path(cam.crud_image))
+        cam.crud_image = await stroragefactory.get_full_path(cam.crud_image)
 
 
     return result
@@ -61,7 +61,7 @@ async def api_get_camera(camera_id: int, db: AsyncSession = Depends(get_db), cur
     camera_op = CameraOperation(db)
     camera_detials = await camera_op.get_one_object_id(camera_id)
     stroragefactory = StorageFactory.get_instance(settings.STORAGE_BACKEND)
-    camera_detials.crud_image = await stroragefactory.get_full_path(Path(camera_detials.crud_image))
+    camera_detials.crud_image = await stroragefactory.get_full_path(camera_detials.crud_image)
     return camera_detials
 
 
