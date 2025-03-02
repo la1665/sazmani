@@ -2,6 +2,7 @@ from search_service.search import BaseSearchService
 
 from schema.user import  UserInDB
 from schema.guest import GuestInDB
+from schema.vehicle import VehicleInDB
 from schema.building import BuildingInDB
 from schema.gate import GateInDB
 from schema.camera import CameraInDB
@@ -41,6 +42,21 @@ guest_search = BaseSearchService[GuestInDB](
     filterable_attributes=["user_type", "is_active", "created_at", "updated_at"],
     sortable_attributes=["created_at", "updated_at"]
 )
+
+
+vehicle_search = BaseSearchService[VehicleInDB](
+    index_name="vehicles",
+    schema_model=VehicleInDB,
+    searchable_attributes=[
+        "plate_number",
+        "vehicle_class",
+        "vehicle_type",
+        "vehicle_color"
+    ],
+    filterable_attributes=["is_active", "created_at", "updated_at"],
+    sortable_attributes=["created_at", "updated_at"]
+)
+
 
 # Building Search Service
 building_search = BaseSearchService[BuildingInDB](

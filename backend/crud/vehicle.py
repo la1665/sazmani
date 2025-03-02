@@ -10,10 +10,11 @@ from models.user import DBGuest, DBUser
 from crud.base import CrudOperation
 from crud.user import UserOperation
 from models.vehicle import DBVehicle
-from schema.vehicle import VehicleCreate
+from schema.vehicle import VehicleCreate, VehicleInDB
 from settings import settings
 from validator import image_validator
 from image_storage.storage_management import StorageFactory
+from search_service.search_config import vehicle_search
 
 
 BASE_UPLOAD_DIR = Path("uploads/car_images")  # Base directory for storing images
@@ -97,6 +98,8 @@ class VehicleOperation(CrudOperation):
             self.db_session.add(new_vehicle)
             await self.db_session.commit()
             await self.db_session.refresh(new_vehicle)
+            meilisearch_data = VehicleInDB.from_orm(new_vehicle)
+            await vehicle_search.sync_document(meilisearch_data)
             return new_vehicle
         except SQLAlchemyError as error:
             await self.db_session.rollback()

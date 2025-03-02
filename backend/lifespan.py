@@ -13,7 +13,7 @@ from search_service.search_config import (
     gate_search, camera_search,
     lpr_search, traffic_search,
     camera_setting_search, lpr_setting_search,
-    guest_search,
+    guest_search, vehicle_search
 )
 from redis_cache import redis_cache
 from utils.middlewares import security_middleware
@@ -22,6 +22,7 @@ from utils.middlewares import security_middleware
 async def initialize_search_services():
     await user_search.initialize_index()
     await guest_search.initialize_index()
+    await vehicle_search.initialize_index()
     await building_search.initialize_index()
     await gate_search.initialize_index()
     await camera_search.initialize_index()

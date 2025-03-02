@@ -43,6 +43,9 @@ class VehicleInDB(VehicleBase):
 
     class Config:
         from_attributes = True
-
+        json_encoders = {
+            UserType: lambda v: v.value  # Serialize enum to string
+        }
+        use_enum_values = True  # Add this line
 
 VehiclePagination = Pagination[VehicleInDB]

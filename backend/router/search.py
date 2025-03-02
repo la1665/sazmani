@@ -8,7 +8,7 @@ from search_service.search_config import (
     building_search, gate_search,
     camera_search, camera_setting_search,
     lpr_search, lpr_setting_search,
-    traffic_search
+    traffic_search, vehicle_search,
 )
 from schema.user import UserInDB
 from redis_cache import redis_cache
@@ -35,6 +35,7 @@ async def model_search(
     service_map = {
         "users": user_search,
         "guests": guest_search,
+        "vehicles": vehicle_search,
         "buildings": building_search,
         "gates": gate_search,
         "cameras": camera_search,
