@@ -36,16 +36,17 @@ class UserOperation(CrudOperation):
 
     async def create_user(self, user:UserCreate):
         hashed_password = get_password_hash(user.national_id)
-        if user.email:
-            query = await self.db_session.execute(
-                select(self.db_table).where(
-                    or_(self.db_table.personal_number == user.personal_number, self.db_table.email == user.email)
-                ))
-        else:
+        if user.email is None:
             query = await self.db_session.execute(
                 select(self.db_table).where(
                     self.db_table.personal_number == user.personal_number
                 ))
+        else:
+            query = await self.db_session.execute(
+                select(self.db_table).where(
+                    or_(self.db_table.personal_number == user.personal_number, self.db_table.email == user.email)
+                ))
+
         db_user = query.unique().scalar_one_or_none()
         if db_user:
             raise HTTPException(status.HTTP_400_BAD_REQUEST, "user with this cridentials already exists.")
