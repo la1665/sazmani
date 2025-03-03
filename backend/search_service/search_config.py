@@ -48,10 +48,7 @@ vehicle_search = BaseSearchService[VehicleInDB](
     index_name="vehicles",
     schema_model=VehicleInDB,
     searchable_attributes=[
-        "plate_number",
-        "vehicle_class",
-        "vehicle_type",
-        "vehicle_color"
+        "plate_number"
     ],
     filterable_attributes=["is_active", "created_at", "updated_at"],
     sortable_attributes=["created_at", "updated_at"]

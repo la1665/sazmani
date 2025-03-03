@@ -5,7 +5,8 @@ ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
 
 # Install necessary system dependencies, including OpenGL libraries
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
     build-essential \
     gcc \
     libffi-dev \
@@ -13,9 +14,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     postgresql-client \
     curl \
     libgl1-mesa-glx \
-    libglib2.0-0 \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+    libglib2.0-0 && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 # Set the working directory
 WORKDIR /app

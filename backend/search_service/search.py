@@ -21,7 +21,7 @@ class BaseSearchService(Generic[T]):
         searchable_attributes: List[str],
         filterable_attributes: List[str] = [],
         sortable_attributes: List[str] = [],
-        ranking_rules: List[str] = None
+        ranking_rules: List[str] = []
     ):
         self.client = Client(
             settings.MEILI_URL,
