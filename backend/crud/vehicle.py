@@ -152,7 +152,7 @@ class VehicleOperation(CrudOperation):
                 self.db_session.add(db_vehicle)
                 await self.db_session.commit()
                 await self.db_session.refresh(db_vehicle)
-                status_message = f"User {db_vehicle.id} deleted"
+                status_message = f"Vehicle {db_vehicle.id} deleted"
                 return {"message": status_message}
             except SQLAlchemyError as error:
                 await self.db_session.rollback()
