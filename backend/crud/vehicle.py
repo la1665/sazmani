@@ -143,3 +143,19 @@ class VehicleOperation(CrudOperation):
             )
         finally:
             await self.db_session.close()
+
+
+    async def delete_vehicle(self, vehicle_id: int):
+            db_vehicle = await self.get_one_object_id(vehicle_id)
+            try:
+                db_vehicle.is_active = False
+                self.db_session.add(db_vehicle)
+                await self.db_session.commit()
+                await self.db_session.refresh(db_vehicle)
+                status_message = f"User {db_vehicle.id} deleted"
+                return {"message": status_message}
+            except SQLAlchemyError as error:
+                await self.db_session.rollback()
+                raise HTTPException(status.HTTP_400_BAD_REQUEST, f"{error}: Could not delete vehicle")
+            finally:
+                await self.db_session.close()

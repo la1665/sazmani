@@ -130,7 +130,7 @@ async def api_delete_vehicle(
     Delete a vehicle by ID.
     """
     vehicle_op = VehicleOperation(db)
-    return await vehicle_op.delete_object(vehicle_id)
+    return await vehicle_op.delete_vehicle(vehicle_id)
 
 
 @vehicle_router.post("/users/{user_id}/vehicles/{vehicle_id}/car-image", response_model=VehicleInDB, dependencies=[Depends(check_password_changed)])
