@@ -74,7 +74,7 @@ class BuildingOperation(CrudOperation):
 
         # Fetch the records
         query = await self.db_session.execute(
-            select(DBGate).where(DBGate.building_id == building_id).order_by(DBGate.updated_at.desc()).offset(offset).limit(page_size)
+            select(DBGate).where(DBGate.building_id == building_id).order_by(DBGate.created_at.desc()).offset(offset).limit(page_size)
         )
         objects = query.unique().scalars().all()
 

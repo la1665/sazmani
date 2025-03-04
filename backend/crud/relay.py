@@ -123,7 +123,7 @@ class RelayOperation(CrudOperation):
 
         # Fetch the records
         query = await self.db_session.execute(
-            select(DBRelayKey).where(DBRelayKey.relay_id == relay_id).order_by(DBRelayKey.updated_at.desc()).offset(offset).limit(page_size)
+            select(DBRelayKey).where(DBRelayKey.relay_id == relay_id).order_by(DBRelayKey.created_at.desc()).offset(offset).limit(page_size)
         )
         objects = query.unique().scalars().all()
 

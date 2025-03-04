@@ -33,7 +33,7 @@ class VehicleOperation(CrudOperation):
         Retrieve vehicles of a specific user with pagination.
         """
         offset = (page - 1) * page_size
-        query = select(self.db_table).where(self.db_table.owner_id == user_id).order_by(self.db_table.updated_at.desc()).offset(offset).limit(page_size)
+        query = select(self.db_table).where(self.db_table.owner_id == user_id).order_by(self.db_table.created_at.desc()).offset(offset).limit(page_size)
         result = await self.db_session.execute(query)
         items = result.scalars().all()
 

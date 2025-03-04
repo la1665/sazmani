@@ -39,6 +39,22 @@ async def api_create_user(
     return await user_op.create_user(user)
 
 
+@user_router.post("/upload-users", status_code=status.HTTP_201_CREATED, dependencies=[Depends(check_password_changed)])
+async def api_upload_users_excel(
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+    current_user: UserInDB = Depends(get_admin_or_staff_user)
+):
+    """
+    Create multiple users via Excel upload
+    - Supported formats: .xlsx, .xls
+    - Required columns: personal_number, national_id, first_name, last_name,
+                      email, phone_number, office, user_type, gate_ids, accessible_gate_ids
+    """
+    user_op = UserOperation(db)
+    return await user_op.create_users_from_excel(file)
+
+
 @user_router.get("/{user_id}", response_model=UserInDB, status_code=status.HTTP_200_OK, dependencies=[Depends(check_password_changed)])
 async def api_get_user(
     request: Request,

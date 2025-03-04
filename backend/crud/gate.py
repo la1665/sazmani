@@ -85,7 +85,7 @@ class GateOperation(CrudOperation):
 
         # Fetch the records
         query = await self.db_session.execute(
-            select(DBCamera).where(DBCamera.gate_id == gate_id).order_by(DBCamera.updated_at.desc()).offset(offset).limit(page_size)
+            select(DBCamera).where(DBCamera.gate_id == gate_id).order_by(DBCamera.created_at.desc()).offset(offset).limit(page_size)
         )
         objects = query.unique().scalars().all()
 

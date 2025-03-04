@@ -40,7 +40,7 @@ class CameraOperation(CrudOperation):
         query = await self.db_session.execute(
             select(self.db_table)
             .where(self.db_table.gate_id.in_(gate_ids))
-            .order_by(self.db_table.updated_at.desc())
+            .order_by(self.db_table.created_at.desc())
             .offset(offset)
             .limit(page_size)
         )

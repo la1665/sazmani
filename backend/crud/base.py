@@ -43,7 +43,7 @@ class CrudOperation:
 
         # Fetch the records
         query = await self.db_session.execute(
-            select(self.db_table).order_by(self.db_table.updated_at.desc()).offset(offset).limit(page_size)
+            select(self.db_table).order_by(self.db_table.created_at.desc()).offset(offset).limit(page_size)
         )
         objects = query.unique().scalars().all()
 

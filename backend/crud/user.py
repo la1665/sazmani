@@ -1,4 +1,6 @@
 import os
+import pandas as pd
+from io import BytesIO
 from pathlib import Path
 from fastapi import HTTPException, UploadFile, status
 from sqlalchemy import or_
@@ -188,3 +190,122 @@ class UserOperation(CrudOperation):
             )
         finally:
             await self.db_session.close()
+
+    async def create_users_from_excel(self, file: UploadFile):
+        try:
+            contents = await file.read()
+            df = pd.read_excel(BytesIO(contents)).replace({pd.NA: None, '': None})
+
+            required_columns = {'personal_number', 'national_id', 'user_type'}
+            if not required_columns.issubset(df.columns):
+                missing = required_columns - set(df.columns)
+                raise HTTPException(status.HTTP_400_BAD_REQUEST,
+                                  f"Missing mandatory columns: {', '.join(missing)}")
+
+            users_to_create = []
+            skipped_users = 0
+
+            for _, row in df.iterrows():
+                if pd.isna(row.get("personal_number")) or pd.isna(row.get("national_id")):
+                    raise HTTPException(status.HTTP_400_BAD_REQUEST,
+                                        "personal_number and national_id cannot be empty")
+
+                user_type = self._parse_user_type(row.get("user_type"))
+
+                user_data = {
+                    "personal_number":str(row["personal_number"]),
+                    "national_id":str(row["national_id"]),
+                    "first_name":row.get("first_name"),
+                    "last_name":row.get("last_name"),
+                    "office":row.get("office"),
+                    "phone_number":self._parse_phone_number(row.get("phone_number")),
+                    "email":row.get("email"),
+                    "user_type":user_type,
+                    "gates":self._process_id_list(row.get("gate_ids")),
+                    "accessible_gates":self._process_id_list(row.get("accessible_gate_ids")),
+                    "hashed_password": get_password_hash(str(row["national_id"])),
+                }
+
+               # Check for existing user
+                query = await self.db_session.execute(
+                    select(self.db_table).where(
+                        or_(self.db_table.personal_number == user_data["personal_number"],
+                            self.db_table.email == user_data["email"]) if user_data["email"] else
+                        (self.db_table.personal_number == user_data["personal_number"])
+                    )
+                )
+                db_user = query.scalar_one_or_none()
+                if db_user:
+                    skipped_users += 1
+                    print(f"Skipping existing user: {user_data['personal_number']}")
+                    continue
+                    # raise HTTPException(status.HTTP_400_BAD_REQUEST, "user with this cridentials already exists.")
+
+                gates = []
+                if user_data["gates"]:
+                    gates_query = await self.db_session.execute(
+                        select(DBGate).where(DBGate.id.in_(user_data["gate_ids"]))
+                    )
+                    gates = gates_query.scalars().all()
+
+                # Fetch accessible gates
+                accessible_gates = []
+                if user_data["accessible_gates"]:
+                    accessible_query = await self.db_session.execute(
+                        select(DBGate).where(DBGate.id.in_(user_data["accessible_gates"]))
+                    )
+                    accessible_gates = accessible_query.scalars().all()
+
+                # Now assign correct values
+                new_user = DBUser(
+                    personal_number=user_data["personal_number"],
+                    national_id=user_data["national_id"],
+                    first_name=user_data["first_name"],
+                    last_name=user_data["last_name"],
+                    office=user_data["office"],
+                    phone_number=user_data["phone_number"],
+                    email=user_data["email"],
+                    user_type=user_data["user_type"],
+                    gates=gates,  # Correct: Assigning DBGate objects
+                    accessible_gates=accessible_gates,  # Correct: Assigning DBGate objects
+                    hashed_password=user_data["hashed_password"],
+                )
+
+                users_to_create.append(new_user)
+
+            if users_to_create:
+                self.db_session.add_all(users_to_create)
+                await self.db_session.commit()
+            return {"message": f"{len(users_to_create)} users created successfully"}
+
+        except pd.errors.EmptyDataError:
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, "Empty Excel file")
+
+        except SQLAlchemyError as e:
+            await self.db_session.rollback()
+            raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, f"Database error: {str(e)}")
+
+        except Exception as e:
+            raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR,
+                              f"Error processing Excel file: {str(e)}")
+
+    def _parse_user_type(self, value):
+        try:
+            return UserType(str(value).lower()) if value else UserType.USER
+        except ValueError:
+            return UserType.USER
+
+
+    def _parse_phone_number(self, value):
+        if pd.isna(value) or value is None:
+            return None
+        return str(int(value))  # Remove decimal if it's a float
+
+
+    def _process_id_list(self, value):
+        if pd.isna(value) or value in [None, ""]:
+            return []
+        try:
+            return [int(x.strip()) for x in str(value).split(",")]
+        except ValueError:
+            return []
