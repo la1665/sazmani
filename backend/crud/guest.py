@@ -59,6 +59,7 @@ class GuestOperation(CrudOperation):
                 start_date=guest.start_date,
                 end_date=guest.end_date,
                 user_type="guest",
+                max_vehicle=guest.max_vehicle,
                 inviting_user=db_user,
                 gates=db_accessible_gates,
             )

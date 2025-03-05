@@ -62,7 +62,7 @@ class VehicleOperation(CrudOperation):
 
     async def create_vehicle(self, vehicle: VehicleCreate):
         db_vehicle = await self.get_one_vehcile_plate(vehicle.plate_number)
-        if db_vehicle:
+        if db_vehicle and db_vehicle.is_active == True:
             raise HTTPException(status.HTTP_400_BAD_REQUEST, "Vehicle with this plate number already exists.")
         db_user_id = None
         if vehicle.owner_id:
@@ -74,6 +74,10 @@ class VehicleOperation(CrudOperation):
             #     raise HTTPException(status.HTTP_404_NOT_FOUND, f"User with ID: {vehicle.owner_id} not found!")
             if db_user:
                 db_user_id = db_user.id
+                count = await self._get_user_vehicle_count(vehicle.owner_id)
+                if count >= db_user.max_vehicle:
+                    raise HTTPException(status.HTTP_400_BAD_REQUEST,
+                        f"Maximum {db_user.max_vehicle} vehicles allowed for {db_user.personal_number}")
 
         db_guest_id = None
         if vehicle.guest_id:
@@ -85,6 +89,11 @@ class VehicleOperation(CrudOperation):
             #     raise HTTPException(status.HTTP_404_NOT_FOUND, f"User with ID: {vehicle.owner_id} not found!")
             if result:
                 db_guest_id = result.id
+                count = await self._get_guest_vehicle_count(vehicle.guest_id)
+                if count >= result.max_vehicle:
+                    raise HTTPException(status.HTTP_400_BAD_REQUEST,
+                        f"Maximum {result.max_vehicle} vehicles allowed for {result.first_name} {result.last_name}")
+
 
         try:
             new_vehicle = self.db_table(
@@ -159,3 +168,16 @@ class VehicleOperation(CrudOperation):
                 raise HTTPException(status.HTTP_400_BAD_REQUEST, f"{error}: Could not delete vehicle")
             finally:
                 await self.db_session.close()
+
+
+    async def _get_user_vehicle_count(self, user_id: int):
+        result = await self.db_session.execute(
+            select(func.count(self.db_table.id)).where(self.db_table.owner_id == user_id).where(self.db_table.is_active == True)
+        )
+        return result.scalar()
+
+    async def _get_guest_vehicle_count(self, guest_id: int):
+        result = await self.db_session.execute(
+            select(func.count(self.db_table.id)).where(self.db_table.guest_id == guest_id).where(self.db_table.is_active == True)
+        )
+        return result.scalar()

@@ -29,6 +29,7 @@ class DBUser(Base):
     hashed_password = Column(String(255), nullable=False)
     profile_image = Column(String, nullable=True)
     password_changed = Column(Boolean, default=False, nullable=False)
+    max_vehicle = Column(Integer, default=5, nullable=False)
     is_active = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime, nullable=False, default=func.now())
     updated_at = Column(
@@ -48,6 +49,7 @@ class DBGuest(Base):
     first_name = Column(String(255), nullable=True)
     last_name = Column(String(255), nullable=True)
     phone_number = Column(String(11), nullable=True)
+    max_vehicle = Column(Integer, default=5, nullable=False)
     user_type = Column(String(11), default="guest", nullable=False)
 
     # Access period for the guest

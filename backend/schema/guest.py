@@ -20,6 +20,7 @@ class GuestBase(BaseModel):
     last_name: Optional[str] = None
     phone_number: Optional[str] = None
     user_type: str = Field(default="guest")
+    max_vehicle: int = Field(default=5)
     start_date: datetime
     end_date: datetime
 

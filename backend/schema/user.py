@@ -25,6 +25,7 @@ class UserBase(BaseModel):
     phone_number: Optional[str] = None
     email: Optional[EmailStr] = None
     user_type: UserType = Field(default=UserType.USER)
+    max_vehicle: int = Field(default=5)
 
 
 class UserCreate(UserBase):

@@ -78,6 +78,7 @@ class UserOperation(CrudOperation):
                 phone_number=user.phone_number,
                 email=user.email,
                 user_type=user.user_type,
+                max_vehicle=user.max_vehicle,
                 hashed_password=hashed_password,
                 gates=db_gates,
                 accessible_gates=db_accessible_gates,
@@ -221,6 +222,7 @@ class UserOperation(CrudOperation):
                     "phone_number":self._parse_phone_number(row.get("phone_number")),
                     "email":row.get("email"),
                     "user_type":user_type,
+                    "max_vehicle": int(row["max_vehicle"]) if pd.notna(row.get("max_vehicle")) else 5,
                     "gates":self._process_id_list(row.get("gate_ids")),
                     "accessible_gates":self._process_id_list(row.get("accessible_gate_ids")),
                     "hashed_password": get_password_hash(str(row["national_id"])),
@@ -266,6 +268,7 @@ class UserOperation(CrudOperation):
                     phone_number=user_data["phone_number"],
                     email=user_data["email"],
                     user_type=user_data["user_type"],
+                    max_vehicle=user_data["max_vehicle"],
                     gates=gates,  # Correct: Assigning DBGate objects
                     accessible_gates=accessible_gates,  # Correct: Assigning DBGate objects
                     hashed_password=user_data["hashed_password"],
