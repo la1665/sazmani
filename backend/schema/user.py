@@ -50,6 +50,7 @@ class UserUpdate(BaseModel):
     user_type: Optional[UserType] = None
     is_active: Optional[bool] = None
     password_changed: Optional[bool] = None
+    max_vehicle: Optional[int] = None
 
 
 class ChangePasswordRequest(BaseModel):

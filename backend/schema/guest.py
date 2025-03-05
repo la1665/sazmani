@@ -41,6 +41,7 @@ class GuestUpdate(BaseModel):
     last_name: Optional[str] = None
     phone_number: Optional[str] = None
     is_active: Optional[bool] = None
+    max_vehicle: Optional[int] = None
 
 
 # class ChangePasswordRequest(BaseModel):
